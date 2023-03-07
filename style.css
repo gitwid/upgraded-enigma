@@ -1,0 +1,380 @@
+body {
+  font-family: "Lato", sans-serif;
+  margin: 0px;
+  height: 100%;
+}
+html {
+  scroll-behavior: smooth;
+  margin: 0px;
+  height: 100%;
+}
+
+h1{padding-top: 20px;}
+
+.frontpage {
+  background-image: url(./images/waves.jpg);
+  background-color: rgb(192, 246, 246);
+  border: 1px solid rgb(171, 235, 235);
+  border-radius: 15px;
+  margin: 5vh auto 40vh;
+  width: 35%;
+  padding: 10px;
+  text-align: center;
+  display: flex;
+  justify-content: space-around;
+}
+/* TOOLTIPS */
+/* Tooltip container */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black; /* If you want dots under the hoverable text */
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: plum;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+
+  /* Position the tooltip text - see examples below! */
+  position: absolute;
+  z-index: 1;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+
+.page {
+  border: 10px solid rgb(238, 229, 208);
+  border-radius: 5px;
+  background-color: rgb(238, 229, 208);
+  height: 100%;
+}
+
+ul {
+  border-radius: 15px;
+  list-style-type: none;
+  font-size: 20px;
+  margin: 0;
+  padding: 0;
+  width: auto;
+  background-color: #f1f1f1;
+}
+
+li a {
+  text-align: center;
+  display: block;
+  color: #000;
+  padding: 8px 16px;
+  text-decoration: none;
+  border: 5px solid #f1f1f1;
+  border-radius: 10px;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* Change the link color on hover */
+li a:hover {
+  background-color: #555;
+  color: white;
+}
+
+.inline {
+  border: 10px solid cadetblue;
+  border-radius: 15%;
+  margin: 10 auto 10;
+}
+textarea {
+  font-size: x-large;
+}
+
+.grid-container {
+  border-radius: 5%;
+  width: 80vw;
+  margin: 5px auto 5px;
+  height: 100vh;
+  display: grid;
+  align-content: center;
+  grid-template-columns: auto auto auto;
+  background-color: #eae5ae;
+  padding: 10px;
+}
+
+.grid-item {
+  border-radius: 3%;
+  background-color: rgba(230, 175, 36, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.8);
+  margin: 10px;
+  height: 200px;
+  font-size: 30px;
+  text-align: center;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.img-01 {
+  background-image: url("./images/grid-image1.jpeg");
+}
+.img-02 {
+  background-image: url("./images/grid-image2.jpg");
+}
+.img-03 {
+  background-image: url("./images/grid-image3.jpg");
+}
+.img-04 {
+  background-image: url("./images/grid-image4.jpg");
+}
+.img-05 {
+  background-image: url("./images/grid-image5.jpg");
+}
+.img-06 {
+  background-image: url("./images/grid-image6.jpg");
+}
+.img-07 {
+  background-image: url("./images/grid-image7.jpg");
+}
+.img-08 {
+  background-image: url("./images/grid-image8.jpg");
+}
+.img-09 {
+  background-image: url("./images/grid-image9.jpg");
+}
+.img-10 {
+  background-image: url("./images/grid-image10.jpg");
+}
+.img-11 {
+  background-image: url("./images/grid-image11.jpg");
+}
+.img-12 {
+  background-image: url("./images/grid-image12.jpg");
+}
+.img-13 {
+  background-image: url("./images/grid-image13.jpg");
+}
+.img-14 {
+  background-image: url("./images/grid-image14.jpg");
+}
+.img-15 {
+  background-image: url("./images/grid-image15.jpg");
+}
+.img-16 {
+  background-image: url("./images/grid-image16.jpg");
+}
+.img-17 {
+  background-image: url("./images/grid-image17.jpg");
+}
+.img-18 {
+  background-image: url("./images/grid-image18.jpg");
+}
+.img-19 {
+  background-image: url("./images/grid-image19.jpg");
+}
+.img-20 {
+  background-image: url("./images/grid-image20.jpg");
+}
+.img-21 {
+  background-image: url("./images/grid-image21.jpg");
+}
+.img-22 {
+  background-image: url("./images/grid-image22.jpg");
+}
+.img-23 {
+  background-image: url("./images/grid-image23.jpg");
+}
+.img-24 {
+  background-image: url("./images/grid-image24.jpg");
+}
+.img-25 {
+  background-image: url("./images/grid-image25.jpg");
+}
+.img-26 {
+  background-image: url("./images/grid-image26.jpg");
+}
+.img-27 {
+  background-image: url("./images/grid-image27.jpg");
+}
+
+/* MAKE HOVER */
+
+.img-01:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-02:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-03:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-04:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-05:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-06:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-07:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-08:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-09:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-10:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-11:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-12:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-13:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-14:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-15:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-16:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-17:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-18:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-19:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-20:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-21:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-22:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-23:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-24:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-25:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-26:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.img-27:hover {
+  display: flexbox;
+  border: 1px solid pink;
+  box-shadow: 10px 5px 15px grey;
+}
+
+.iframe-center {
+  display: flex;
+  justify-content: center;
+}
+iframe {
+  margin: 10px 10px 10px;
+}
+p {
+  font-size: large;
+}

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lato:wght@100;400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" type="text/css" href="./style.css" />
+    <title>Digital Mindfulness</title>
+  </head>
+  <body>
+    <div class="page">
+      <h1 id="nav-id">Digital Mindfulness</h1>
+
+      <section class="frontpage">
+        <ul>
+          <li>
+            <div class="tooltip">
+              <a href="#breath-id"
+                ><span style="font-size: 100px">&#9765;</span></a
+              >
+              <span class="tooltiptext">Breath</span>
+            </div>
+          </li>
+          <li>
+            <div class="tooltip">
+              <a href="#mind-id"
+                ><span style="font-size: 100px">&#9729;</span></a
+              >
+              <span class="tooltiptext">Mind</span>
+            </div>
+          </li>
+          <li>
+            <div class="tooltip">
+              <a href="#eye-id"
+                ><span style="font-size: 100px">&#9737;</span></a
+              >
+              <span class="tooltiptext">Eye</span>
+            </div>
+          </li>
+          <li>
+            <div class="tooltip">
+              <a href="#play-id"
+                ><span style="font-size: 100px">&#9775;</span></a
+              >
+              <span class="tooltiptext">Play</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </div>
+
+    <!-- Sections -->
+    <!-- BREATH -->
+    <section id="breath-id" class="page">
+      <a href="#nav-id"><span style="font-size: 100px">&#9765;</span></a>
+      <h2>Breath</h2>
+      <p>
+        Mindfulness begins with the breath. Smooth natural breathing is, almost
+        always, the answer. Whether it be stress, anxiety, conflict or just
+        feeling low, focussing on the breath and finding the right rhythm is one
+        of the simplest ways of creating a space for your own self, that's safe,
+        relaxed and leads to renewal and calm. Try an exercise: Follow Wim Hoff
+        in an 11 minute breath sequence and come back here when you completed
+        the journey:
+      </p>
+      <section class="iframe-center">
+        <iframe
+          class="inline"
+          width="560"
+          height="315"
+          src="https://www.youtube.com/embed/0BNejY1e9ik?controls=0"
+          title="Breathe with Wim"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+        ></iframe>
+      </section>
+      <!-- MIND BUTTON -->
+      <div></div>
+      <a href="#mind-id"><span style="font-size: 100px">&#9729;</span></a>
+    </section>
+    <!-- MIND -->
+    <section id="mind-id" class="page">
+      <a href="#nav-id"><span style="font-size: 100px">&#9729;</span></a>
+      <h2>Mind</h2>
+      <p>Now that you have found your breath stay in this calm space.</p>
+      <p>Contemplate your surroundings. Notice your mind.</p>
+
+      <p>
+        As you are reading these lines, see if your mind wants to stay focused
+        or if you're already wandering off in your thoughts again.
+      </p>
+      <p>
+        Now, start writing your thoughts in the box below. Keep in mind that
+        there is no purpose to this. You're not trying to accomplish anything,
+        and the only connection that is happening is between your being and your
+        mind.
+      </p>
+
+      <form>
+        <textarea
+          placeholder="Express your thoughts as if they were wandering by and you could observe them as they pass:"
+          name="message"
+          cols="85"
+        ></textarea>
+        <input
+          type="reset"
+          value="Refresh"
+          style="background-color: rgb(0, 140, 255); color: white"
+        />
+      </form>
+      <p>
+        Now that you've had a chance to open your mind and let your thoughts
+        move freely, give your eyes a break.
+      </p>
+      <p>Click here</p>
+      <!-- EYE BUTTON -->
+      <a href="#eye-id"> <span style="font-size: 100px">&#9737;</span></a>
+
+      <!-- EYE -->
+    </section>
+    <section id="eye-id">
+      <div class="page">
+        <a href="#nav-id"> <span style="font-size: 100px">&#9737;</span></a>
+        <h2>Section 03 - Eye</h2>
+        <p>
+          Here you are. You're still reading, but what you really want to do is
+          feel the patterns that let your eye see.
+        </p>
+        <p>
+          In the following pictures, follow the patterns that please you the
+          most and always choose the one that feels natural:
+        </p>
+        <input
+          type="button"
+          onClick="document.getElementById('grid-1-id').scrollIntoView();"
+        />
+        <!-- GRID 1 -->
+        <!-- <img src="./images/grid-image1.jpeg" alt="1"
+          /> -->
+
+        <div id="grid-1-id" class="grid-container">
+          <a href="#grid-2-id"><div class="grid-item img-01"></div></a>
+          <a href="#grid-2-id"><div class="grid-item img-02"></div></a>
+          <a href="#grid-2-id"><div class="grid-item img-03"></div></a>
+          <a href="#grid-2-id"><div class="grid-item img-04"></div></a>
+          <a href="#grid-2-id"><div class="grid-item img-05"></div></a>
+          <a href="#grid-2-id"><div class="grid-item img-06"></div></a>
+          <a href="#grid-2-id"><div class="grid-item img-07"></div></a>
+          <a href="#grid-2-id"><div class="grid-item img-08"></div></a>
+          <a href="#grid-2-id"><div class="grid-item img-09"></div></a>
+        </div>
+        <!-- GRID 2 -->
+        <div id="grid-2-id" class="grid-container">
+          <a href="#grid-3-id"><div class="grid-item img-10"></div></a>
+          <a href="#grid-3-id"><div class="grid-item img-11"></div></a>
+          <a href="#grid-3-id"><div class="grid-item img-12"></div></a>
+          <a href="#grid-3-id"><div class="grid-item img-13"></div></a>
+          <a href="#grid-3-id"><div class="grid-item img-14"></div></a>
+          <a href="#grid-3-id"><div class="grid-item img-15"></div></a>
+          <a href="#grid-3-id"><div class="grid-item img-16"></div></a>
+          <a href="#grid-3-id"><div class="grid-item img-17"></div></a>
+          <a href="#grid-3-id"><div class="grid-item img-18"></div></a>
+        </div>
+        <!-- GRID 3 -->
+        <div id="grid-3-id" class="grid-container">
+          <a href="#play-id"><div class="grid-item img-19"></div></a>
+          <a href="#play-id"><div class="grid-item img-20"></div></a>
+          <a href="#play-id"><div class="grid-item img-21"></div></a>
+          <a href="#play-id"><div class="grid-item img-22"></div></a>
+          <a href="#play-id"><div class="grid-item img-23"></div></a>
+          <a href="#play-id"><div class="grid-item img-24"></div></a>
+          <a href="#play-id"><div class="grid-item img-25"></div></a>
+          <a href="#play-id"><div class="grid-item img-26"></div></a>
+          <a href="#play-id"><div class="grid-item img-27"></div></a>
+        </div>
+      </div>
+    </section>
+    <!-- PLAY -->
+    <section id="play-id" class="page">
+      <a href="#nav-id"> <span style="font-size: 100px">&#9775;</span></a>
+      <h2>Section 04 - Play</h2>
+      <p>
+        You did it. You leaned into your breath. You emptied your mind of
+        thought. You followed your intution and let your eye choose the patterns
+        that please you the most.
+      </p>
+
+      <p>Now you're ready to play.</p>
+      <p>
+        Enjoy the harmonies you can create, using nothing but your mouse and
+        watch the infinite beauty of the fractal at the same time. Take your
+        time, nothing is pressing you. When you are done playing, continue your
+        day, refreshed and awake!
+      </p>
+      <div class="iframe-center">
+        <iframe
+          style="border-radius: 15%"
+          src="https://musiclab.chromeexperiments.com/Harmonics/"
+          width="560"
+          height="315"
+          name="”iframe”"
+          title="”This"
+          is
+          my
+          video”
+        ></iframe>
+        <iframe
+          style="border-radius: 15%"
+          width="560"
+          height="315"
+          src="https://www.youtube.com/embed/IrYfMfUURYM?controls=0&autoplay=1&mute=1"
+          title="YouTube video player"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </section>
+  </body>
+  <footer>© 2023 Somebody with an idea® </footer>
+</html>

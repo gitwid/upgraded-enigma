@@ -1,0 +1,12 @@
+HTML
+
+ToDo
+
+- [X] Make sure sections are page filling & separate
+- [X] Make grid items center/fill grid
+- [X] Flow Sections:Smooth scrolling from one section to the next and
+- [X] Make Icon paragraph header
+- [X]  ability to navigate back 
+- [X] Make images clickable
+- [X] Icons for each
+- [X] Make Grid items hoverable or uncoverable
