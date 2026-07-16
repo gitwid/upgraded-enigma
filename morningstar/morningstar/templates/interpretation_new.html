@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}New interpretation — Morningstar{% endblock %}
+{% block content %}
+<h1>New interpretation</h1>
+{% if parent %}
+<p class="meta">Branching from <a href="/interpretations/{{ parent.id }}">{{ parent.title }}</a>.
+The parent remains on record unchanged.</p>
+{% endif %}
+<form method="post" action="/interpretations/new">
+  <label>Title
+    <input type="text" name="title" {% if parent %}value="{{ parent.title }} (branch)"{% endif %}>
+  </label>
+  <label>Interpretation <span class="hint">This is the layer for meaning, causes, motives, and stories. It can be revised, branched, superseded, or discarded later.</span>
+    <textarea name="body">{% if parent %}{{ parent.body }}{% endif %}</textarea>
+  </label>
+  <label>Which captures does this interpret? <span class="hint">Tick any that apply.</span></label>
+  {% for c in captures %}
+  <label style="margin-top:.2rem">
+    <input type="checkbox" name="capture_ids" value="{{ c.id }}"
+      {% if c.id == preselect or (parent and c.id in parent.referenced_capture_ids) %}checked{% endif %}>
+    capture {{ "%03d"|format(c.sequence_number) }} — <span class="meta">{{ c.recorded_at or c.created_at }}</span>
+  </label>
+  {% endfor %}
+  <label>Confidence (optional, 0–1)
+    <input type="number" name="confidence" min="0" max="1" step="0.05"
+      {% if parent and parent.confidence is not none %}value="{{ parent.confidence }}"{% endif %}>
+  </label>
+  {% if parent %}<input type="hidden" name="parent" value="{{ parent.id }}">{% endif %}
+  <button type="submit">Create interpretation</button>
+</form>
+{% endblock %}

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Morningstar{% endblock %}</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 46rem; margin: 0 auto; padding: 1rem; color: #222; background: #fdfcf9; line-height: 1.5; }
+  header { display: flex; flex-wrap: wrap; gap: .8rem; align-items: baseline; border-bottom: 1px solid #ddd; padding-bottom: .5rem; margin-bottom: 1.2rem; }
+  header .brand { font-weight: bold; text-decoration: none; color: #222; font-size: 1.2rem; }
+  nav a { margin-right: .7rem; color: #446; font-size: .92rem; }
+  h1, h2, h3 { font-weight: normal; }
+  textarea, input[type=text], input[type=number] { width: 100%; font: inherit; padding: .35rem; border: 1px solid #bbb; background: #fff; box-sizing: border-box; }
+  textarea { min-height: 6rem; }
+  label { display: block; margin-top: .8rem; font-size: .95rem; }
+  .hint { color: #666; font-size: .85rem; margin: .1rem 0 .3rem; }
+  button { font: inherit; padding: .35rem .9rem; margin-top: .8rem; cursor: pointer; }
+  .warn { background: #fff8e6; border-left: 3px solid #d0a020; padding: .5rem .8rem; margin: .6rem 0; font-size: .92rem; }
+  .error { background: #fdeaea; border-left: 3px solid #c04040; padding: .5rem .8rem; margin: .6rem 0; font-size: .92rem; }
+  .ok { background: #eef7ee; border-left: 3px solid #4a9a4a; padding: .5rem .8rem; margin: .6rem 0; }
+  .meta { color: #666; font-size: .85rem; }
+  .channel { white-space: pre-wrap; background: #fff; border: 1px solid #e5e2da; padding: .7rem; margin: .3rem 0 1rem; }
+  details { margin: 1rem 0; }
+  details summary { cursor: pointer; color: #446; }
+  table { border-collapse: collapse; font-size: .88rem; }
+  td, th { padding: .2rem .6rem; text-align: left; vertical-align: top; border-bottom: 1px solid #eee; }
+  footer { margin-top: 2.5rem; border-top: 1px solid #ddd; padding-top: .6rem; color: #888; font-size: .82rem; }
+  .inline-form { display: inline; }
+  code { font-size: .82rem; word-break: break-all; }
+  ul.captures { list-style: none; padding: 0; }
+  ul.captures li { padding: .5rem 0; border-bottom: 1px solid #eee; }
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="/">Morningstar</a>
+  <nav>
+    <a href="/capture/new">New capture</a>
+    <a href="/chat">Conversational</a>
+    <a href="/interpretations">Interpretations</a>
+    <a href="/audit">Audit</a>
+    <a href="/export">Export</a>
+    <a href="/settings">Settings</a>
+  </nav>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer>Morningstar v{{ app_version }} — an observational instrument. It records; it does not judge.</footer>
+</body>
+</html>

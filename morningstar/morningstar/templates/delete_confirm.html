@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Permanently delete — Morningstar{% endblock %}
+{% block content %}
+<h1>Permanently delete capture {{ "%03d"|format(capture.sequence_number) }}?</h1>
+
+<div class="warn">
+<p><strong>This conflicts with the append-only record, on purpose.</strong>
+Morningstar normally never destroys evidence — but your right to remove sensitive
+content outranks the ledger. Two options:</p>
+<ul>
+  <li><strong>Hide</strong> keeps the evidence intact and just removes it from
+      normal view. Fully reversible. Prefer this if you can.</li>
+  <li><strong>Permanent deletion</strong> irreversibly blanks this capture's text,
+      its annotations, and the ledger entries that carried its content. The record
+      of <em>when</em> a capture existed, its ordering, and the hash chain remain,
+      and the deletion itself is recorded as an event — but the content cannot be
+      recovered and can no longer be verified against its hash.</li>
+</ul>
+<p>Anything you exported earlier still contains the content; deletion here does not
+reach backups or exports.</p>
+</div>
+
+<form method="post" action="/capture/{{ capture.id }}/hide" class="inline-form">
+  <button type="submit">Hide instead</button>
+</form>
+<form method="post" action="/capture/{{ capture.id }}/delete" class="inline-form">
+  <input type="hidden" name="confirm" value="yes">
+  <button type="submit">Permanently delete</button>
+</form>
+<a href="/capture/{{ capture.id }}"><button type="button">Cancel</button></a>
+{% endblock %}
