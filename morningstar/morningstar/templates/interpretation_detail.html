@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}{{ interp.title }} — Morningstar{% endblock %}
+{% block content %}
+<h1>{{ interp.title }}</h1>
+<p class="meta">
+  status: <strong>{{ interp.status }}</strong> · revision {{ interp.revision }} ·
+  created {{ interp.created_at }}
+  {% if interp.confidence is not none %}· confidence {{ interp.confidence }}{% endif %}
+  {% if interp.parent_interpretation_id %}·
+    <a href="/interpretations/{{ interp.parent_interpretation_id }}">branched from parent</a>{% endif %}
+</p>
+<div class="channel">{{ interp.body or "(empty)" }}</div>
+
+<h3>References</h3>
+<ul>
+  {% for c in referenced %}
+  <li><a href="/capture/{{ c.id }}">capture {{ "%03d"|format(c.sequence_number) }}</a>
+      <span class="meta">{{ c.recorded_at or c.created_at }}</span></li>
+  {% else %}
+  <li class="meta">(no captures referenced)</li>
+  {% endfor %}
+</ul>
+{% if interp.child_interpretation_ids %}
+<h3>Branches</h3>
+<ul>
+  {% for cid in interp.child_interpretation_ids %}
+  <li><a href="/interpretations/{{ cid }}">{{ cid[:8] }}…</a></li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<p>
+<form method="post" action="/interpretations/{{ interp.id }}/status" class="inline-form">
+  {% if interp.status != "superseded" %}
+  <button name="status" value="superseded">Mark superseded</button>
+  {% endif %}
+  {% if interp.status != "discarded" %}
+  <button name="status" value="discarded">Discard</button>
+  {% endif %}
+  {% if interp.status != "active" %}
+  <button name="status" value="active">Reactivate</button>
+  {% endif %}
+</form>
+<a href="/interpretations/new?parent={{ interp.id }}"><button type="button">Branch</button></a>
+</p>
+
+<details>
+  <summary>Revise (adds a new revision; earlier revisions stay on record)</summary>
+  <form method="post" action="/interpretations/{{ interp.id }}/revise">
+    <label>Title <input type="text" name="title" value="{{ interp.title }}"></label>
+    <label>Body <textarea name="body">{{ interp.body }}</textarea></label>
+    <label>Referenced captures</label>
+    {% for c in captures %}
+    <label style="margin-top:.2rem">
+      <input type="checkbox" name="capture_ids" value="{{ c.id }}"
+        {% if c.id in interp.referenced_capture_ids %}checked{% endif %}>
+      capture {{ "%03d"|format(c.sequence_number) }}
+    </label>
+    {% endfor %}
+    <label>Confidence (optional, 0–1)
+      <input type="number" name="confidence" min="0" max="1" step="0.05"
+        {% if interp.confidence is not none %}value="{{ interp.confidence }}"{% endif %}>
+    </label>
+    <button type="submit">Save as new revision</button>
+  </form>
+</details>
+
+<details>
+  <summary>Revision history & provenance</summary>
+  <table>
+    <tr><th>rev</th><th>created</th><th>status</th><th>title</th><th>hash</th></tr>
+    {% for r in interp.revisions %}
+    <tr>
+      <td>{{ r.revision }}</td><td>{{ r.created_at }}</td><td>{{ r.status }}</td>
+      <td>{{ r.title }}</td><td><code>{{ r.integrity_hash[:16] }}…</code></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p class="meta">internal id: <code>{{ interp.id }}</code></p>
+</details>
+{% endblock %}

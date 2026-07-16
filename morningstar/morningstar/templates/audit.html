@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Audit — Morningstar{% endblock %}
+{% block content %}
+<h1>Audit</h1>
+<p class="meta">Integrity conditions are instrument states, not user failures.
+Warnings are informational; errors mean the record no longer verifies.</p>
+
+{% if report.ok %}
+<div class="ok">Integrity check passed at {{ report.checked_at }} —
+event order, hash-chain continuity, object hashes, references, and version registrations all verify.</div>
+{% else %}
+<div class="error"><strong>Integrity check failed</strong> at {{ report.checked_at }}.</div>
+{% endif %}
+
+{% for e in report.errors %}<div class="error">{{ e }}</div>{% endfor %}
+{% for w in report.warnings %}<div class="warn">{{ w }}</div>{% endfor %}
+
+<h3>Counts</h3>
+<table>
+  {% for key, value in report.counts.items() %}
+  <tr><td>{{ key.replace("_", " ") }}</td><td>{{ value }}</td></tr>
+  {% endfor %}
+</table>
+
+<h3>Protocol versions</h3>
+<table>
+  <tr><th>version</th><th>registered</th><th>change</th></tr>
+  {% for p in protocol_versions %}
+  <tr><td>{{ p.version }}</td><td>{{ p.created_at }}</td><td>{{ p.change_description }}</td></tr>
+  {% endfor %}
+</table>
+
+<h3>Schema versions</h3>
+<table>
+  <tr><th>version</th><th>applied</th><th>description</th></tr>
+  {% for s in schema_versions %}
+  <tr><td>{{ s.schema_version }}</td><td>{{ s.applied_at }}</td><td>{{ s.description }}</td></tr>
+  {% endfor %}
+</table>
+
+<h3>Recent events</h3>
+<table>
+  <tr><th>seq</th><th>type</th><th>created</th><th>hash</th></tr>
+  {% for e in events %}
+  <tr>
+    <td>{{ e.seq }}</td><td>{{ e.event_type }}</td><td>{{ e.created_at }}</td>
+    <td><code>{{ e.integrity_hash[:16] }}…</code></td>
+  </tr>
+  {% endfor %}
+</table>
+<p class="meta">Hashes provide tamper <em>evidence</em> for this local store; they are not
+a cryptographic guarantee against someone with full access to the database file.</p>
+{% endblock %}

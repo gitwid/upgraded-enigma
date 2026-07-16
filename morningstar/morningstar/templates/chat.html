@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Conversational capture — Morningstar{% endblock %}
+{% block content %}
+<h1>Conversational capture</h1>
+{% if step < 3 %}
+  <p class="meta">Question {{ step + 1 }} of 3 — answer in your own words, as briefly or fully as you like. You can leave any answer empty.</p>
+  <form method="post" action="/chat">
+    <h2>{{ steps[step].question }}</h2>
+    <p class="hint">{{ steps[step].hint }}</p>
+    <textarea name="{{ steps[step].field }}" autofocus></textarea>
+    {% for s in steps %}
+      {% if loop.index0 != step and values.get(s.field) %}
+      <textarea name="{{ s.field }}" hidden>{{ values[s.field] }}</textarea>
+      {% endif %}
+    {% endfor %}
+    <input type="hidden" name="step" value="{{ step }}">
+    <input type="hidden" name="capture_source" value="conversational">
+    <button type="submit">Next</button>
+  </form>
+{% else %}
+  <p class="meta">Optional: anything about the source or timing? Skip freely.</p>
+  <form method="post" action="/capture/preview">
+    <label>When did this happen? <span class="hint">“this morning”, “~11:30” — approximate is fine.</span>
+      <input type="text" name="recorded_at">
+    </label>
+    <label>Source <span class="hint">e.g. “memory”, “WhatsApp screenshot (verbatim)”.</span>
+      <input type="text" name="source">
+    </label>
+    <label>How long after the events are you writing this?
+      <input type="text" name="recall_latency">
+    </label>
+    {% for s in steps %}
+    <textarea name="{{ s.field }}" hidden>{{ values.get(s.field, "") }}</textarea>
+    {% endfor %}
+    <input type="hidden" name="capture_source" value="conversational">
+    <button type="submit">Review capture</button>
+  </form>
+{% endif %}
+{% endblock %}

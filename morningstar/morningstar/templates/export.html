@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Export — Morningstar{% endblock %}
+{% block content %}
+<h1>Export</h1>
+<p class="meta">Exports contain the full record: original capture text, timestamps,
+provenance, schema versions, annotations, interpretation references, and integrity data.
+Hidden captures are included; redacted content stays redacted.</p>
+<ul>
+  <li><a href="/export/archive.txt">Plain text</a> — readable without knowing anything about the data model</li>
+  <li><a href="/export/archive.md">Markdown</a></li>
+  <li><a href="/export/archive.json">JSON</a> — complete archive including the event ledger</li>
+</ul>
+<h3>Backup</h3>
+<p class="meta">The entire store is a single SQLite file in the data directory — copying that
+file is a complete backup; restoring it is a complete restore.</p>
+{% endblock %}

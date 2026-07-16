@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Settings — Morningstar{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+
+<h3>Data</h3>
+<table>
+  <tr><td>data directory</td><td><code>{{ store.data_dir }}</code></td></tr>
+  <tr><td>database file</td><td><code>{{ store.db_path }}</code></td></tr>
+  <tr><td>runtime identifier</td><td><code>{{ store.device_id }}</code> <span class="meta">(random; reveals nothing about the device)</span></td></tr>
+</table>
+
+<h3>Device metadata</h3>
+<form method="post" action="/settings">
+  <label>
+    <input type="checkbox" name="device_metadata_consent"
+      {% if store.device_metadata_consent %}checked{% endif %}>
+    Record device platform and hostname in each capture's context
+  </label>
+  <p class="meta">Off by default. If enabled, future captures include your operating
+  system string and machine hostname as automatically collected context. Nothing
+  leaves this machine either way. Applies to future captures only.</p>
+  <button type="submit">Save</button>
+</form>
+
+<h3>Privacy</h3>
+<p class="meta">Morningstar stores everything locally, makes no network calls, requires no
+account, and contains no analytics or telemetry. Treat the data directory as sensitive —
+consider full-disk encryption; database-level encryption is not implemented in v0.1.</p>
+{% endblock %}

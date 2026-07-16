@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Capture {{ "%03d"|format(capture.sequence_number) }} — Morningstar{% endblock %}
+{% block content %}
+<h1>Capture {{ "%03d"|format(capture.sequence_number) }}</h1>
+<p class="meta">
+  recorded: {{ capture.recorded_at or capture.created_at + " (machine timestamp)" }}<br>
+  source: {{ capture.source or "not stated" }} ·
+  recall latency: {{ capture.recall_latency or "not stated" }}
+  {% if capture.hidden %}· <strong>hidden from normal view</strong>{% endif %}
+  {% if capture.redacted %}· <strong>content permanently redacted</strong>{% endif %}
+</p>
+
+<h3>Observation</h3>
+<div class="channel">{{ capture.observation or "(empty)" }}</div>
+<h3>Phenomenology</h3>
+<div class="channel">{{ capture.phenomenology or "(empty)" }}</div>
+<h3>Action</h3>
+<div class="channel">{{ capture.action or "(empty)" }}</div>
+
+<h3>Annotations</h3>
+{% if annotations %}
+  {% for a in annotations %}
+  <div class="channel"><span class="meta">[{{ a.type }}] {{ a.created_at }}</span><br>{{ a.body }}</div>
+  {% endfor %}
+{% else %}
+  <p class="meta">None yet. The capture itself is immutable; anything you add later lands here.</p>
+{% endif %}
+<form method="post" action="/capture/{{ capture.id }}/annotate">
+  <label>Add an annotation
+    <textarea name="body" required></textarea>
+  </label>
+  <label>Kind
+    <select name="type">
+      <option value="note">note — additional thoughts</option>
+      <option value="correction">correction — the original stays; this records what you'd correct</option>
+      <option value="context">context — extra circumstances</option>
+    </select>
+  </label>
+  <button type="submit">Add annotation</button>
+</form>
+
+<h3>Interpretations referencing this capture</h3>
+{% if interpretations %}
+<ul>
+  {% for i in interpretations %}
+  <li><a href="/interpretations/{{ i.id }}">{{ i.title }}</a> <span class="meta">({{ i.status }})</span></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="meta">None. <a href="/interpretations/new?capture={{ capture.id }}">Write one</a> whenever you're ready — or never.</p>
+{% endif %}
+
+<details>
+  <summary>Audit / provenance</summary>
+  <table>
+    <tr><td>internal id</td><td><code>{{ capture.id }}</code></td></tr>
+    <tr><td>committed</td><td>{{ capture.committed_at }}</td></tr>
+    <tr><td>timezone</td><td>{{ capture.timezone }}</td></tr>
+    <tr><td>protocol version</td><td>{{ capture.protocol_version }}</td></tr>
+    <tr><td>schema version</td><td>{{ capture.schema_version }}</td></tr>
+    <tr><td>integrity hash</td><td><code>{{ capture.integrity_hash }}</code></td></tr>
+    <tr><td>previous hash</td><td><code>{{ capture.previous_hash }}</code></td></tr>
+    {% for key, value in capture.context_snapshot.get("automatic", {}).items() %}
+    <tr><td>context: {{ key.replace("_", " ") }}</td><td>{{ value if value is not none else "—" }}</td></tr>
+    {% endfor %}
+    {% for key, value in capture.context_snapshot.get("stated", {}).items() %}
+    <tr><td>context (stated): {{ key.replace("_", " ") }}</td><td>{{ value }}</td></tr>
+    {% endfor %}
+  </table>
+</details>
+
+<p>
+{% if capture.hidden %}
+<form method="post" action="/capture/{{ capture.id }}/unhide" class="inline-form"><button>Unhide</button></form>
+{% else %}
+<form method="post" action="/capture/{{ capture.id }}/hide" class="inline-form"><button>Hide from normal view</button></form>
+{% endif %}
+{% if not capture.redacted %}
+<a href="/capture/{{ capture.id }}/delete"><button type="button">Permanently delete…</button></a>
+{% endif %}
+</p>
+{% endblock %}

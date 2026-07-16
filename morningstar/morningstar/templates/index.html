@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Captures</h1>
+{% if not captures %}
+  <p>No captures yet. <a href="/capture/new">Start one</a> — or try the
+  <a href="/chat">conversational mode</a>, which just asks three questions.</p>
+{% else %}
+<ul class="captures">
+  {% for c in captures %}
+  <li>
+    <a href="/capture/{{ c.id }}"><strong>capture {{ "%03d"|format(c.sequence_number) }}</strong></a>
+    <span class="meta">{{ c.recorded_at or c.created_at }}</span>
+    {% if c.hidden %}<span class="meta">(hidden)</span>{% endif %}
+    {% if c.redacted %}<span class="meta">(redacted)</span>{% endif %}
+    {% set preview = (c.observation or c.phenomenology or c.action or "").strip() %}
+    <div class="meta">{% if c.redacted %}content permanently removed{% elif preview %}{{ preview.splitlines()[0][:100] }}{% else %}(empty){% endif %}</div>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+<p class="meta">
+  {% if show_hidden %}<a href="/">Hide hidden captures</a>
+  {% else %}<a href="/?hidden=1">Show hidden captures</a>{% endif %}
+</p>
+{% endblock %}

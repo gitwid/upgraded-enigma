@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Interpretations — Morningstar{% endblock %}
+{% block content %}
+<h1>Interpretations</h1>
+<p class="meta">Interpretations are a separate, revisable layer. They reference captures;
+they never change them. Competing interpretations can coexist — the instrument does not
+decide which one is true.</p>
+{% if interpretations %}
+<ul class="captures">
+  {% for i in interpretations %}
+  <li>
+    <a href="/interpretations/{{ i.id }}"><strong>{{ i.title }}</strong></a>
+    <span class="meta">{{ i.status }} · revision {{ i.revision }} ·
+      references {{ i.referenced_capture_ids|length }} capture(s)
+      {% if i.parent_interpretation_id %}· branched{% endif %}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="meta">None yet.</p>
+{% endif %}
+<p><a href="/interpretations/new"><button type="button">New interpretation</button></a></p>
+{% endblock %}

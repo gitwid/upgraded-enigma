@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}New capture — Morningstar{% endblock %}
+{% block content %}
+<h1>New capture</h1>
+<p class="meta">Write naturally. Timestamps, versions, and bookkeeping are handled for you.
+Nothing is saved until you review and commit.</p>
+<form method="post" action="/capture/preview">
+  <label>What happened? <span class="hint">Externally observable facts — times, messages, events. Verbatim quotes welcome. Leave out motives and explanations; they get their own layer later.</span>
+    <textarea name="observation">{{ values.observation or "" }}</textarea>
+  </label>
+  <label>What did you experience? <span class="hint">Immediate feelings and sensations, in your own words.</span>
+    <textarea name="phenomenology">{{ values.phenomenology or "" }}</textarea>
+  </label>
+  <label>What did you do? <span class="hint">Behavior actually performed. No justification needed.</span>
+    <textarea name="action">{{ values.action or "" }}</textarea>
+  </label>
+
+  <details {% if values.source or values.recall_latency or values.recorded_at %}open{% endif %}>
+    <summary>Optional details (source, timing, context)</summary>
+    <label>When did this happen? <span class="hint">In your own words — “this morning”, “~11:30”, “yesterday evening”. Approximate is fine; the exact capture time is recorded automatically.</span>
+      <input type="text" name="recorded_at" value="{{ values.recorded_at or "" }}">
+    </label>
+    <label>Source <span class="hint">e.g. “WhatsApp screenshot (verbatim)”, “memory”, “calendar”.</span>
+      <input type="text" name="source" value="{{ values.source or "" }}">
+    </label>
+    <label>How long after the events are you writing this? <span class="hint">e.g. “~2h”, “right away”, “next day”.</span>
+      <input type="text" name="recall_latency" value="{{ values.recall_latency or "" }}">
+    </label>
+    <label>Location (optional)
+      <input type="text" name="location" value="{{ values.location or "" }}">
+    </label>
+    <label>Weather (optional)
+      <input type="text" name="weather" value="{{ values.weather or "" }}">
+    </label>
+    <label>Sleep last night (optional)
+      <input type="text" name="sleep_duration" value="{{ values.sleep_duration or "" }}">
+    </label>
+    <label>Heart rate (optional)
+      <input type="text" name="heart_rate" value="{{ values.heart_rate or "" }}">
+    </label>
+  </details>
+
+  <input type="hidden" name="capture_source" value="{{ values.capture_source or "form" }}">
+  <button type="submit">Review capture</button>
+</form>
+{% endblock %}

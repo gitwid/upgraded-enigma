@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Review capture — Morningstar{% endblock %}
+{% block content %}
+<h1>Review before committing</h1>
+<p class="meta">Once committed, this capture becomes part of the permanent record.
+Later thoughts can be added as annotations — the original will not change.</p>
+
+<h3>Observation</h3>
+<div class="channel">{{ values.observation or "(empty)" }}</div>
+<h3>Phenomenology</h3>
+<div class="channel">{{ values.phenomenology or "(empty)" }}</div>
+<h3>Action</h3>
+<div class="channel">{{ values.action or "(empty)" }}</div>
+
+{% if warnings %}
+  <h3>Possible layer leakage</h3>
+  <p class="meta">These are gentle flags, not corrections. You can commit exactly what you wrote.</p>
+  {% for w in warnings %}
+  <div class="warn">
+    In <strong>{{ w.channel }}</strong>, “{{ w.matched_text }}” — {{ w.reason }}
+    <br><span class="meta">{{ w.suggestion }}</span>
+  </div>
+  {% endfor %}
+{% endif %}
+
+<details>
+  <summary>Context that will be recorded automatically</summary>
+  <table>
+    {% for key, value in context_preview.items() %}
+    <tr><td>{{ key.replace("_", " ") }}</td><td>{{ value if value is not none else "—" }}</td></tr>
+    {% endfor %}
+    {% for key in ("location", "weather", "sleep_duration", "heart_rate") %}
+      {% if values.get(key) %}
+      <tr><td>{{ key.replace("_", " ") }} (stated by you)</td><td>{{ values[key] }}</td></tr>
+      {% endif %}
+    {% endfor %}
+  </table>
+  <p class="meta">Collected by the instrument, recorded as metadata — not as interpretation. Final values are taken at the moment of commit.</p>
+</details>
+
+<form method="post" action="/capture/commit" class="inline-form">
+  {% for key, value in values.items() %}
+  <textarea name="{{ key }}" hidden>{{ value }}</textarea>
+  {% endfor %}
+  <button type="submit">Commit capture</button>
+</form>
+<form method="post" action="/capture/edit" class="inline-form">
+  {% for key, value in values.items() %}
+  <textarea name="{{ key }}" hidden>{{ value }}</textarea>
+  {% endfor %}
+  <button type="submit">Go back and edit</button>
+</form>
+{% endblock %}
