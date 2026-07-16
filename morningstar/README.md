@@ -1,5 +1,7 @@
 # Morningstar v0.1
 
+[![CI](https://github.com/gitwid/upgraded-enigma/actions/workflows/ci.yml/badge.svg)](https://github.com/gitwid/upgraded-enigma/actions/workflows/ci.yml)
+
 A provenance-preserving observational instrument for personal, emotional, and
 epistemic development.
 
