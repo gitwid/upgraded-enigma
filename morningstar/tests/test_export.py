@@ -41,7 +41,7 @@ def test_exports_preserve_original_evidence(store):
     exported_cap = data["captures"][0]
     assert exported_cap["observation"] == cap["observation"]
     assert exported_cap["created_at"] == cap["created_at"]
-    assert exported_cap["schema_version"] == "0.1"
+    assert exported_cap["schema_version"] == "0.2"
     assert exported_cap["integrity_hash"] == cap["integrity_hash"]
     assert exported_cap["previous_hash"] == cap["previous_hash"]
     assert exported_cap["annotations"][0]["body"].startswith("later thought")

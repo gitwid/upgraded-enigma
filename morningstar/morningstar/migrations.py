@@ -17,6 +17,14 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
+class ProtocolRecord:
+    version: str
+    change_description: str
+    migration_notes: str
+    compatibility_notes: str
+
+
+@dataclass(frozen=True)
 class Migration:
     id: int
     schema_version: str
@@ -24,6 +32,12 @@ class Migration:
     migration_notes: str
     compatibility_notes: str
     statements: tuple[str, ...]
+    # A protocol change that rides along with this migration, registered
+    # as a first-class event when the migration is applied. Versions are
+    # pinned here explicitly — never derived from the runtime constant —
+    # so replaying all migrations on a fresh store reconstructs the full
+    # version history.
+    protocol: ProtocolRecord | None = None
 
 
 # Triggers enforce append-only behavior at the database level. The
@@ -154,6 +168,61 @@ MIGRATION_0001 = Migration(
         *_immutable("schema_migrations"),
         *_immutable("protocol_versions"),
     ),
+    protocol=ProtocolRecord(
+        version="0.1",
+        change_description=(
+            "Initial Morningstar capture protocol: four channels "
+            "(observation, phenomenology, action, context); interpretation "
+            "is a separate layer."
+        ),
+        migration_notes="Nothing to migrate.",
+        compatibility_notes="First protocol version.",
+    ),
 )
 
-MIGRATIONS: tuple[Migration, ...] = (MIGRATION_0001,)
+MIGRATION_0002 = Migration(
+    id=2,
+    schema_version="0.2",
+    description=(
+        "Adds protocol_version columns to annotations, interpretations, and "
+        "interpretation revisions so every stored object records the protocol "
+        "it was hashed under."
+    ),
+    migration_notes=(
+        "Additive only. Existing rows keep NULL protocol_version and are "
+        "treated as protocol 0.1 (legacy canonicalization) by the integrity "
+        "checker. No hashes are recomputed."
+    ),
+    compatibility_notes=(
+        "Objects written under schema/protocol 0.1 remain readable and "
+        "verifiable forever using the original serialization."
+    ),
+    statements=(
+        "ALTER TABLE annotations ADD COLUMN protocol_version TEXT",
+        "ALTER TABLE interpretations ADD COLUMN protocol_version TEXT",
+        "ALTER TABLE interpretation_revisions ADD COLUMN protocol_version TEXT",
+    ),
+    protocol=ProtocolRecord(
+        version="0.2",
+        change_description=(
+            "Canonical serialization for integrity hashing is now RFC 8785 "
+            "(JSON Canonicalization Scheme). The golden vectors in "
+            "tests/golden/jcs_vectors.json define the byte-exact contract "
+            "any future implementation (e.g. a native Swift port) must "
+            "reproduce."
+        ),
+        migration_notes=(
+            "New objects are hashed over JCS bytes. Objects hashed under "
+            "protocol 0.1 keep their original hashes and are verified with "
+            "the original serialization — re-hashing history would be later "
+            "knowledge rewriting earlier evidence."
+        ),
+        compatibility_notes=(
+            "Integrity verification selects the canonicalization by each "
+            "object's recorded protocol version. Hash-chain continuity is "
+            "unaffected: chains compare stored hash strings."
+        ),
+    ),
+)
+
+MIGRATIONS: tuple[Migration, ...] = (MIGRATION_0001, MIGRATION_0002)

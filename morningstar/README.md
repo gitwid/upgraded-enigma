@@ -110,6 +110,14 @@ detected — not cryptographic proof against an adversary with full access to
 the database file, who could rewrite the chain wholesale. Morningstar claims
 nothing beyond what is implemented.
 
+As of protocol 0.2, canonical serialization is **RFC 8785 (JCS)**, so the
+bytes under every hash are specified independently of Python. The golden
+vectors in `tests/golden/jcs_vectors.json` are the byte-exact contract any
+other implementation (e.g. a future native port) must reproduce before it
+may claim to verify a Morningstar store. Objects recorded under protocol
+0.1 are never re-hashed; they verify under the original serialization
+forever — the record does not get rewritten to suit new tooling.
+
 ## What Morningstar Refuses to Do
 
 Morningstar does **not**:
