@@ -81,7 +81,7 @@ def test_competing_interpretations_coexist(store):
 def test_schema_change_requires_new_version_record(store):
     with pytest.raises(SchemaVersionError, match="new version record"):
         store.apply_migration(Migration(
-            id=2, schema_version="0.1",  # reuses the registered version
+            id=3, schema_version="0.1",  # reuses a registered version
             description="sneaky mutation", migration_notes="",
             compatibility_notes="",
             statements=("ALTER TABLE captures ADD COLUMN sneaky TEXT",)))
@@ -90,13 +90,14 @@ def test_schema_change_requires_new_version_record(store):
             id=5, schema_version="0.5", description="skips ahead",
             migration_notes="", compatibility_notes="", statements=()))
     store.apply_migration(Migration(
-        id=2, schema_version="0.1.1", description="adds an optional column",
+        id=3, schema_version="0.2.1", description="adds an optional column",
         migration_notes="none", compatibility_notes="additive only",
         statements=("ALTER TABLE captures ADD COLUMN extra TEXT",)))
-    assert store.schema_version == "0.1.1"
-    assert [m["schema_version"] for m in store.schema_versions()] == ["0.1", "0.1.1"]
+    assert store.schema_version == "0.2.1"
+    assert [m["schema_version"] for m in store.schema_versions()] == \
+        ["0.1", "0.2", "0.2.1"]
     assert any(e["event_type"] == "schema_migrated"
-               and e["payload"]["schema_version"] == "0.1.1"
+               and e["payload"]["schema_version"] == "0.2.1"
                for e in store.events())
 
 
@@ -138,17 +139,17 @@ def test_sequence_numbers_assigned_automatically(store):
 
 # 12. Historical captures remain readable after a schema migration.
 def test_historical_captures_readable_after_migration(store):
-    old = commit(store, observation="written under schema 0.1")
+    old = commit(store, observation="written under schema 0.2")
     store.apply_migration(Migration(
-        id=2, schema_version="0.2", description="adds optional mood column",
+        id=3, schema_version="0.3-test", description="adds optional mood column",
         migration_notes="additive; old rows keep NULL",
-        compatibility_notes="captures recorded under 0.1 stay valid",
+        compatibility_notes="captures recorded under 0.2 stay valid",
         statements=("ALTER TABLE captures ADD COLUMN mood TEXT",)))
     readback = store.get_capture(old["id"])
-    assert readback["observation"] == "written under schema 0.1"
-    assert readback["schema_version"] == "0.1"
-    new = commit(store, observation="written under schema 0.2")
-    assert new["schema_version"] == "0.2"
+    assert readback["observation"] == "written under schema 0.2"
+    assert readback["schema_version"] == "0.2"
+    new = commit(store, observation="written under schema 0.3-test")
+    assert new["schema_version"] == "0.3-test"
     report = store.verify_integrity()
     assert report["ok"], report["errors"]
 

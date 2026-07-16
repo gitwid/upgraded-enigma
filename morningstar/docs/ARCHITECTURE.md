@@ -77,13 +77,43 @@ Three layers, weakest to strongest claim:
    `annotations`, `interpretations`, `interpretation_revisions`,
    `schema_migrations`, and `protocol_versions` — even hand-written SQL
    against the file fails.
-3. Hash verification: canonical JSON (sorted keys, no whitespace) →
-   SHA-256 per object, plus previous-hash chaining on events and captures.
-   The audit screen re-verifies order, chain continuity, object hashes,
-   reference integrity, and version registration on demand.
+3. Hash verification: canonical JSON → SHA-256 per object, plus
+   previous-hash chaining on events and captures. The audit screen
+   re-verifies order, chain continuity, object hashes, reference
+   integrity, and version registration on demand.
 
 We claim tamper *evidence*, not tamper *proof*: an adversary with full file
 access can rewrite the whole chain. The UI says so.
+
+## Canonicalization (protocol 0.2)
+
+Protocol 0.1 hashed objects over Python's `json.dumps(sort_keys=True,
+ensure_ascii=False, separators=(",", ":"))` — deterministic, but defined by
+CPython's behavior rather than by a specification another implementation
+could be held to. Ahead of a planned native (Swift) port, protocol 0.2
+adopts **RFC 8785 (JSON Canonicalization Scheme)**: UTF-8, keys sorted by
+UTF-16 code units, minimal string escaping, ECMAScript number formatting,
+NaN/Infinity forbidden, integers bounded to IEEE-754 double interchange.
+
+Consequences, all in keeping with the primary invariant:
+
+- **Nothing is re-hashed.** Objects written under protocol 0.1 keep their
+  hashes forever and are verified with the frozen legacy serialization
+  (`legacy_canonical_json`). Re-hashing history would be later knowledge
+  rewriting earlier evidence.
+- **Verification is era-aware.** Every object records the protocol it was
+  hashed under (captures and events always did; schema 0.2 adds the column
+  to annotations and interpretations — additive migration, old rows NULL =
+  protocol 0.1). The verifier selects the canonicalization per object.
+- **Chains are unaffected**: previous-hash links compare stored hash
+  strings, so a 0.2 capture chains onto a 0.1 capture without friction.
+- **Golden vectors** (`tests/golden/jcs_vectors.json`) are the executable
+  contract: value → canonical UTF-8 bytes → SHA-256. Any port must
+  reproduce them byte-for-byte before it may claim to verify a Morningstar
+  store. The vectors include the cases that break naive implementations:
+  non-BMP key ordering (UTF-16 vs code-point sort), control-character
+  escaping, and ES6 number formatting (`1.0` → `1`, `1e21` → `"1e+21"`,
+  `1e-7` → `"1e-7"`).
 
 ## Redaction (the sanctioned exception)
 

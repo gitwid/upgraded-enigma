@@ -25,7 +25,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .canonical import GENESIS_HASH, integrity_hash
+from .canonical import GENESIS_HASH, hash_fn_for, integrity_hash
 from .config import APP_VERSION, PROTOCOL_VERSION
 from .migrations import MIGRATIONS, Migration
 
@@ -123,14 +123,13 @@ class Store:
                      migration.description, migration.migration_notes,
                      migration.compatibility_notes),
                 )
-                if migration.id == 1:
+                if migration.protocol:
                     self._register_protocol_version(
-                        PROTOCOL_VERSION,
-                        change_description="Initial Morningstar capture protocol: "
-                        "four channels (observation, phenomenology, action, context); "
-                        "interpretation is a separate layer.",
-                        migration_notes="Nothing to migrate.",
-                        compatibility_notes="First protocol version.",
+                        migration.protocol.version,
+                        change_description=migration.protocol.change_description,
+                        migration_notes=migration.protocol.migration_notes,
+                        compatibility_notes=migration.protocol.compatibility_notes,
+                        schema_version=migration.schema_version,
                     )
                 self._append_event(
                     "schema_migrated",
@@ -145,7 +144,8 @@ class Store:
                 )
 
     def _register_protocol_version(self, version: str, *, change_description: str,
-                                   migration_notes: str, compatibility_notes: str) -> None:
+                                   migration_notes: str, compatibility_notes: str,
+                                   schema_version: str) -> None:
         created = utc_now()
         self.conn.execute(
             "INSERT INTO protocol_versions VALUES (?,?,?,?,?,?)",
@@ -160,7 +160,7 @@ class Store:
                 "migration_notes": migration_notes,
                 "compatibility_notes": compatibility_notes,
             },
-            schema_version=MIGRATIONS[0].schema_version,
+            schema_version=schema_version,
         )
 
     @property
@@ -458,8 +458,9 @@ class Store:
             digest = integrity_hash(content)
             self.conn.execute(
                 "INSERT INTO annotations (id, capture_id, created_at, type, body, "
-                "integrity_hash) VALUES (?,?,?,?,?,?)",
-                (content["id"], capture_id, content["created_at"], type_, body, digest),
+                "integrity_hash, protocol_version) VALUES (?,?,?,?,?,?,?)",
+                (content["id"], capture_id, content["created_at"], type_, body,
+                 digest, PROTOCOL_VERSION),
             )
             event_type = ("capture_correction_proposed" if type_ == "correction"
                           else "annotation_added")
@@ -492,8 +493,10 @@ class Store:
             base_digest = integrity_hash(base)
             self.conn.execute(
                 "INSERT INTO interpretations (id, created_at, "
-                "parent_interpretation_id, integrity_hash) VALUES (?,?,?,?)",
-                (base["id"], base["created_at"], parent_interpretation_id, base_digest),
+                "parent_interpretation_id, integrity_hash, protocol_version) "
+                "VALUES (?,?,?,?,?)",
+                (base["id"], base["created_at"], parent_interpretation_id,
+                 base_digest, PROTOCOL_VERSION),
             )
             revision = self._add_revision(
                 base["id"], revision=1, title=title, body=body,
@@ -522,9 +525,10 @@ class Store:
         self.conn.execute(
             "INSERT INTO interpretation_revisions (id, interpretation_id, revision, "
             "created_at, title, body, referenced_capture_ids, status, confidence, "
-            "integrity_hash) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            "integrity_hash, protocol_version) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             (content["id"], interpretation_id, revision, content["created_at"],
-             title, body, json.dumps(list(capture_ids)), status, confidence, digest),
+             title, body, json.dumps(list(capture_ids)), status, confidence,
+             digest, PROTOCOL_VERSION),
         )
         return {**content, "integrity_hash": digest}
 
@@ -579,6 +583,7 @@ class Store:
             "created_at": row["created_at"],
             "parent_interpretation_id": row["parent_interpretation_id"],
             "integrity_hash": row["integrity_hash"],
+            "protocol_version": row["protocol_version"],
             "title": current["title"],
             "body": current["body"],
             "referenced_capture_ids": current["referenced_capture_ids"],
@@ -632,7 +637,7 @@ class Store:
                     "schema_version": ev["schema_version"],
                     "previous_hash": ev["previous_hash"],
                 }
-                if integrity_hash(content) != ev["integrity_hash"]:
+                if hash_fn_for(ev["protocol_version"])(content) != ev["integrity_hash"]:
                     errors.append(f"{label}: stored hash does not match content")
             previous = ev["integrity_hash"]
             expected_seq += 1
@@ -675,7 +680,7 @@ class Store:
                 "previous_hash": cap["previous_hash"],
                 "committed_at": cap["committed_at"],
             }
-            if integrity_hash(content) != cap["integrity_hash"]:
+            if hash_fn_for(cap["protocol_version"])(content) != cap["integrity_hash"]:
                 errors.append(f"{label}: stored hash does not match content "
                               "(possible retrospective edit)")
 
@@ -690,7 +695,7 @@ class Store:
             content = {"id": ann["id"], "capture_id": ann["capture_id"],
                        "created_at": ann["created_at"], "type": ann["type"],
                        "body": ann["body"]}
-            if integrity_hash(content) != ann["integrity_hash"]:
+            if hash_fn_for(ann["protocol_version"])(content) != ann["integrity_hash"]:
                 errors.append(f"{label}: stored hash does not match content")
 
         interp_count = 0
@@ -707,7 +712,7 @@ class Store:
                     "referenced_capture_ids": rev["referenced_capture_ids"],
                     "status": rev["status"], "confidence": rev["confidence"],
                 }
-                if integrity_hash(content) != rev["integrity_hash"]:
+                if hash_fn_for(rev.get("protocol_version"))(content) != rev["integrity_hash"]:
                     errors.append(f"{label} rev {rev['revision']}: "
                                   "stored hash does not match content")
                 for cid in rev["referenced_capture_ids"]:

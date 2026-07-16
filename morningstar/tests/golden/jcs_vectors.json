@@ -1,0 +1,114 @@
+{
+  "description": "RFC 8785 (JCS) golden vectors for Morningstar protocol 0.2. Any implementation claiming to verify a Morningstar store must reproduce 'canonical' byte-for-byte (UTF-8) and 'sha256' for every 'value'. Do not edit; regenerate only with a protocol version increment.",
+  "protocol_version": "0.2",
+  "vectors": [
+    {
+      "name": "key_sorting_ascii",
+      "value": {
+        "b": 2,
+        "a": 1,
+        "A": 0
+      },
+      "canonical": "{\"A\":0,\"a\":1,\"b\":2}",
+      "sha256": "5f05c47104ba1ac24d8cb54dd5f23b15487f4770c9eb767c1c64b64aefba6501"
+    },
+    {
+      "name": "unicode_literal_passthrough",
+      "value": {
+        "text": "émotions ✓ — fin de partie"
+      },
+      "canonical": "{\"text\":\"émotions ✓ — fin de partie\"}",
+      "sha256": "82343e68314c0477914a3e25cc654fda4154d740a40e34de31795a7b0f0a285c"
+    },
+    {
+      "name": "control_character_escaping",
+      "value": {
+        "s": "\u0000\u001f\b\t\n\f\r\u001f\"\\"
+      },
+      "canonical": "{\"s\":\"\\u0000\\u001f\\b\\t\\n\\f\\r\\u001f\\\"\\\\\"}",
+      "sha256": "eeead41e6b278b3dd73f5459e0feebdb2fc87749509958bae0ac09c553a729b8"
+    },
+    {
+      "name": "utf16_key_order_non_bmp",
+      "value": {
+        "！": "bmp",
+        "😀": "non-bmp"
+      },
+      "canonical": "{\"😀\":\"non-bmp\",\"！\":\"bmp\"}",
+      "sha256": "d6338b701cd6f66bb109440edb0a25114a3cb2c4de4733dfa810fa2551f3de25"
+    },
+    {
+      "name": "es6_numbers",
+      "value": {
+        "zero": 0.0,
+        "neg_zero": -0.0,
+        "int_like": 1.0,
+        "half": 0.5,
+        "rfc_45": 4.5,
+        "milli": 0.002,
+        "huge": 1e+21,
+        "edge_int": 1e+20,
+        "micro": 1e-06,
+        "sub_micro": 1e-07,
+        "pi": 3.141592653589793,
+        "rfc_long": 333333333.3333333,
+        "denormal_min": 5e-324,
+        "double_max": 1.7976931348623157e+308,
+        "neg": -42.75,
+        "max_safe_int": 9007199254740991
+      },
+      "canonical": "{\"denormal_min\":5e-324,\"double_max\":1.7976931348623157e+308,\"edge_int\":100000000000000000000,\"half\":0.5,\"huge\":1e+21,\"int_like\":1,\"max_safe_int\":9007199254740991,\"micro\":0.000001,\"milli\":0.002,\"neg\":-42.75,\"neg_zero\":0,\"pi\":3.141592653589793,\"rfc_45\":4.5,\"rfc_long\":333333333.3333333,\"sub_micro\":1e-7,\"zero\":0}",
+      "sha256": "9a342c200c45d37393f79039f1fa08de20ab2bb710cf4517728fc2374d2cb0c9"
+    },
+    {
+      "name": "literals_and_nesting",
+      "value": {
+        "arr": [
+          null,
+          true,
+          false,
+          {},
+          []
+        ],
+        "nested": {
+          "z": [
+            1,
+            2
+          ],
+          "a": "x"
+        }
+      },
+      "canonical": "{\"arr\":[null,true,false,{},[]],\"nested\":{\"a\":\"x\",\"z\":[1,2]}}",
+      "sha256": "f92bf8c5797d5f4223fada40ba42f922b826aaa70cf54a7769a28c82a2c671d9"
+    },
+    {
+      "name": "capture_content_realistic",
+      "value": {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "sequence_number": 1,
+        "created_at": "2026-07-16T09:55:56.193934+00:00",
+        "recorded_at": "2026-07-16, ~11:30 CEST",
+        "timezone": "CEST",
+        "observation": "08:47 rcvd: \"Very unlikely. Tooooo much else going on today and tomorrow\"",
+        "phenomenology": "@08:47: disappointment. feeling rejection.\n@09:48: surrender. fin de partie.",
+        "action": "Ended exchange with closure message (09:48).",
+        "source": "WhatsApp screenshot (verbatim)",
+        "recall_latency": "~2h",
+        "protocol_version": "0.2",
+        "schema_version": "0.2",
+        "context_snapshot": {
+          "automatic": {
+            "elapsed_since_previous_capture_seconds": null,
+            "utc_offset_minutes": 120
+          },
+          "stated": {}
+        },
+        "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "committed_at": "2026-07-16T09:55:56.193934+00:00",
+        "confidence_example": 0.4
+      },
+      "canonical": "{\"action\":\"Ended exchange with closure message (09:48).\",\"committed_at\":\"2026-07-16T09:55:56.193934+00:00\",\"confidence_example\":0.4,\"context_snapshot\":{\"automatic\":{\"elapsed_since_previous_capture_seconds\":null,\"utc_offset_minutes\":120},\"stated\":{}},\"created_at\":\"2026-07-16T09:55:56.193934+00:00\",\"id\":\"00000000-0000-4000-8000-000000000001\",\"observation\":\"08:47 rcvd: \\\"Very unlikely. Tooooo much else going on today and tomorrow\\\"\",\"phenomenology\":\"@08:47: disappointment. feeling rejection.\\n@09:48: surrender. fin de partie.\",\"previous_hash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"protocol_version\":\"0.2\",\"recall_latency\":\"~2h\",\"recorded_at\":\"2026-07-16, ~11:30 CEST\",\"schema_version\":\"0.2\",\"sequence_number\":1,\"source\":\"WhatsApp screenshot (verbatim)\",\"timezone\":\"CEST\"}",
+      "sha256": "cf11a8fc25a3ee2dccdd145743d10c947215508c4e81a708ab75ad852a63a6a1"
+    }
+  ]
+}
