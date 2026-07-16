@@ -2,6 +2,7 @@
 {% block title %}Conversational capture — Morningstar{% endblock %}
 {% block content %}
 <h1>Conversational capture</h1>
+{% if step == 0 and reentry %}<p class="meta">{{ reentry }}</p>{% endif %}
 {% if step < 3 %}
   <p class="meta">Question {{ step + 1 }} of 3 — answer in your own words, as briefly or fully as you like. You can leave any answer empty.</p>
   <form method="post" action="/chat">

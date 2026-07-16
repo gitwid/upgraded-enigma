@@ -2,6 +2,7 @@
 {% block title %}New capture — Morningstar{% endblock %}
 {% block content %}
 <h1>New capture</h1>
+{% if reentry %}<p class="meta">{{ reentry }}</p>{% endif %}
 <p class="meta">Write naturally. Timestamps, versions, and bookkeeping are handled for you.
 Nothing is saved until you review and commit.</p>
 <form method="post" action="/capture/preview">

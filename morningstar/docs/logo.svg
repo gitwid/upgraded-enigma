@@ -1,0 +1,227 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" width="640" height="480">
+  <title>Morningstar — Defender homage logo</title>
+  <desc>Original vector art in the idiom of the Williams Defender (1981) arcade
+  screen: scanner strip, starfield, jagged terrain, a ship carrying one rescued
+  humanoid while a lander abducts another, and a morning star rising. Drawn from
+  scratch for this project; contains no copied game assets.</desc>
+  <rect width="320" height="240" fill="#000"/>
+
+  <!-- score: the value of a rescue, kept forever -->
+  <text x="8" y="24" font-family="monospace" font-size="11" fill="#ffd23f" letter-spacing="1">000500</text>
+
+  <!-- reserve ships + smart bombs -->
+  <polygon points="10,32 22,35 10,38" fill="#e8e8e8"/>
+  <polygon points="26,32 38,35 26,38" fill="#e8e8e8"/>
+  <rect x="42" y="33" width="3" height="4" fill="#7df"/>
+  <rect x="48" y="33" width="3" height="4" fill="#7df"/>
+
+  <!-- scanner (minimap) with bracket frame -->
+  <g stroke="#9fd7ff" stroke-width="1" fill="none" shape-rendering="crispEdges">
+    <path d="M64 10 h44 M212 10 h44 M64 10 v28 M256 10 v28 M64 38 h44 M212 38 h44"/>
+    <path d="M118 10 l14 8 M202 10 l-14 8 M132 18 h56"/>
+  </g>
+  <g shape-rendering="crispEdges">
+    <rect x="150" y="26" width="3" height="3" fill="#fff"/>
+    <rect x="86"  y="22" width="2" height="2" fill="#3f6"/>
+    <rect x="102" y="30" width="2" height="2" fill="#3f6"/>
+    <rect x="176" y="24" width="2" height="2" fill="#3f6"/>
+    <rect x="196" y="31" width="2" height="2" fill="#f44"/>
+    <rect x="232" y="27" width="2" height="2" fill="#3f6"/>
+    <rect x="244" y="21" width="2" height="2" fill="#d6f"/>
+    <rect x="70"  y="28" width="2" height="2" fill="#d6f"/>
+  </g>
+
+  <!-- starfield -->
+  <g fill="#cfd8e3" shape-rendering="crispEdges">
+    <rect x="24" y="58" width="2" height="2"/><rect x="61" y="74" width="1" height="1"/>
+    <rect x="95" y="55" width="1" height="1"/><rect x="139" y="66" width="2" height="2"/>
+    <rect x="171" y="52" width="1" height="1"/><rect x="203" y="82" width="1" height="1"/>
+    <rect x="284" y="58" width="2" height="2"/><rect x="35" y="102" width="1" height="1"/>
+    <rect x="77" y="118" width="1" height="1"/><rect x="118" y="94" width="1" height="1"/>
+    <rect x="186" y="120" width="1" height="1"/><rect x="222" y="140" width="1" height="1"/>
+    <rect x="299" y="96" width="1" height="1"/><rect x="12" y="150" width="1" height="1"/>
+    <rect x="53" y="168" width="1" height="1"/><rect x="160" y="150" width="1" height="1"/>
+    <rect x="266" y="166" width="1" height="1"/><rect x="304" y="140" width="2" height="2"/>
+    <rect x="90" y="140" width="1" height="1"/><rect x="250" y="120" width="1" height="1"/>
+  </g>
+
+  <!-- the morning star -->
+  <g>
+    <polygon points="252,56 255,68 252,80 249,68" fill="#fff"/>
+    <polygon points="240,68 252,65 264,68 252,71" fill="#fff"/>
+    <line x1="244" y1="60" x2="260" y2="76" stroke="#8ef" stroke-width="0.8"/>
+    <line x1="260" y1="60" x2="244" y2="76" stroke="#8ef" stroke-width="0.8"/>
+    <circle cx="252" cy="68" r="2.2" fill="#fff"/>
+  </g>
+
+  <!-- jagged terrain -->
+  <polyline points="0,204 16,192 30,198 48,172 62,194 84,182 104,202 122,178 142,196 162,168 178,192 200,184 220,200 240,174 258,194 280,182 300,202 320,190"
+            fill="none" stroke="#d75c1e" stroke-width="2" stroke-linejoin="round"/>
+
+  <!-- player ship, thrust, laser -->
+  <g shape-rendering="crispEdges">
+    <polygon points="96,128 126,133 96,138 102,133" fill="#e8e8e8"/>
+    <rect x="88" y="131" width="8" height="1.5" fill="#ff8c1a"/>
+    <rect x="82" y="132.5" width="10" height="1.5" fill="#ffd23f"/>
+    <rect x="126" y="132" width="60" height="1.5" fill="#fff"/>
+    <rect x="186" y="132" width="34" height="1" fill="#7df"/>
+  </g>
+
+  <!-- rescued humanoid, carried home -->
+  <line x1="111" y1="138" x2="111" y2="146" stroke="#8ef" stroke-width="0.8"/>
+  <g fill="#3f6" shape-rendering="crispEdges">
+    <rect x="109.5" y="146" width="3" height="3"/>
+    <rect x="110"   y="149" width="2" height="5"/>
+    <rect x="108"   y="150" width="2" height="3"/>
+    <rect x="112"   y="150" width="2" height="3"/>
+    <rect x="109"   y="154" width="1.5" height="4"/>
+    <rect x="111.5" y="154" width="1.5" height="4"/>
+  </g>
+
+  <!-- lander mid-abduction: the one you might not save -->
+  <g shape-rendering="crispEdges">
+    <rect x="248" y="112" width="12" height="5" fill="#3f6"/>
+    <rect x="251" y="108" width="6" height="4" fill="#8f8"/>
+    <rect x="246" y="117" width="3" height="3" fill="#3f6"/>
+    <rect x="259" y="117" width="3" height="3" fill="#3f6"/>
+  </g>
+  <line x1="250" y1="120" x2="252" y2="146" stroke="#ffd23f" stroke-width="0.7"/>
+  <line x1="258" y1="120" x2="256" y2="146" stroke="#ffd23f" stroke-width="0.7"/>
+  <g fill="#d6f" shape-rendering="crispEdges">
+    <rect x="252.5" y="146" width="3" height="3"/>
+    <rect x="253"   y="149" width="2" height="5"/>
+    <rect x="251"   y="150" width="2" height="3"/>
+    <rect x="255"   y="150" width="2" height="3"/>
+    <rect x="252"   y="154" width="1.5" height="4"/>
+    <rect x="254.5" y="154" width="1.5" height="4"/>
+  </g>
+
+  <!-- wordmark: pixel-grid letters, no font dependency -->
+  <g fill="#ffd23f" shape-rendering="crispEdges">
+    <rect x="95" y="214" width="2" height="2"/>
+    <rect x="103" y="214" width="2" height="2"/>
+    <rect x="95" y="216" width="4" height="2"/>
+    <rect x="101" y="216" width="4" height="2"/>
+    <rect x="95" y="218" width="2" height="2"/>
+    <rect x="99" y="218" width="2" height="2"/>
+    <rect x="103" y="218" width="2" height="2"/>
+    <rect x="95" y="220" width="2" height="2"/>
+    <rect x="103" y="220" width="2" height="2"/>
+    <rect x="95" y="222" width="2" height="2"/>
+    <rect x="103" y="222" width="2" height="2"/>
+    <rect x="95" y="224" width="2" height="2"/>
+    <rect x="103" y="224" width="2" height="2"/>
+    <rect x="95" y="226" width="2" height="2"/>
+    <rect x="103" y="226" width="2" height="2"/>
+    <rect x="109" y="214" width="6" height="2"/>
+    <rect x="107" y="216" width="2" height="2"/>
+    <rect x="115" y="216" width="2" height="2"/>
+    <rect x="107" y="218" width="2" height="2"/>
+    <rect x="115" y="218" width="2" height="2"/>
+    <rect x="107" y="220" width="2" height="2"/>
+    <rect x="115" y="220" width="2" height="2"/>
+    <rect x="107" y="222" width="2" height="2"/>
+    <rect x="115" y="222" width="2" height="2"/>
+    <rect x="107" y="224" width="2" height="2"/>
+    <rect x="115" y="224" width="2" height="2"/>
+    <rect x="109" y="226" width="6" height="2"/>
+    <rect x="119" y="214" width="8" height="2"/>
+    <rect x="119" y="216" width="2" height="2"/>
+    <rect x="127" y="216" width="2" height="2"/>
+    <rect x="119" y="218" width="2" height="2"/>
+    <rect x="127" y="218" width="2" height="2"/>
+    <rect x="119" y="220" width="8" height="2"/>
+    <rect x="119" y="222" width="2" height="2"/>
+    <rect x="123" y="222" width="2" height="2"/>
+    <rect x="119" y="224" width="2" height="2"/>
+    <rect x="125" y="224" width="2" height="2"/>
+    <rect x="119" y="226" width="2" height="2"/>
+    <rect x="127" y="226" width="2" height="2"/>
+    <rect x="131" y="214" width="2" height="2"/>
+    <rect x="139" y="214" width="2" height="2"/>
+    <rect x="131" y="216" width="4" height="2"/>
+    <rect x="139" y="216" width="2" height="2"/>
+    <rect x="131" y="218" width="2" height="2"/>
+    <rect x="135" y="218" width="2" height="2"/>
+    <rect x="139" y="218" width="2" height="2"/>
+    <rect x="131" y="220" width="2" height="2"/>
+    <rect x="137" y="220" width="4" height="2"/>
+    <rect x="131" y="222" width="2" height="2"/>
+    <rect x="139" y="222" width="2" height="2"/>
+    <rect x="131" y="224" width="2" height="2"/>
+    <rect x="139" y="224" width="2" height="2"/>
+    <rect x="131" y="226" width="2" height="2"/>
+    <rect x="139" y="226" width="2" height="2"/>
+    <rect x="145" y="214" width="6" height="2"/>
+    <rect x="147" y="216" width="2" height="2"/>
+    <rect x="147" y="218" width="2" height="2"/>
+    <rect x="147" y="220" width="2" height="2"/>
+    <rect x="147" y="222" width="2" height="2"/>
+    <rect x="147" y="224" width="2" height="2"/>
+    <rect x="145" y="226" width="6" height="2"/>
+    <rect x="155" y="214" width="2" height="2"/>
+    <rect x="163" y="214" width="2" height="2"/>
+    <rect x="155" y="216" width="4" height="2"/>
+    <rect x="163" y="216" width="2" height="2"/>
+    <rect x="155" y="218" width="2" height="2"/>
+    <rect x="159" y="218" width="2" height="2"/>
+    <rect x="163" y="218" width="2" height="2"/>
+    <rect x="155" y="220" width="2" height="2"/>
+    <rect x="161" y="220" width="4" height="2"/>
+    <rect x="155" y="222" width="2" height="2"/>
+    <rect x="163" y="222" width="2" height="2"/>
+    <rect x="155" y="224" width="2" height="2"/>
+    <rect x="163" y="224" width="2" height="2"/>
+    <rect x="155" y="226" width="2" height="2"/>
+    <rect x="163" y="226" width="2" height="2"/>
+    <rect x="169" y="214" width="6" height="2"/>
+    <rect x="167" y="216" width="2" height="2"/>
+    <rect x="175" y="216" width="2" height="2"/>
+    <rect x="167" y="218" width="2" height="2"/>
+    <rect x="167" y="220" width="2" height="2"/>
+    <rect x="173" y="220" width="4" height="2"/>
+    <rect x="167" y="222" width="2" height="2"/>
+    <rect x="175" y="222" width="2" height="2"/>
+    <rect x="167" y="224" width="2" height="2"/>
+    <rect x="175" y="224" width="2" height="2"/>
+    <rect x="169" y="226" width="6" height="2"/>
+    <rect x="181" y="214" width="8" height="2"/>
+    <rect x="179" y="216" width="2" height="2"/>
+    <rect x="179" y="218" width="2" height="2"/>
+    <rect x="181" y="220" width="6" height="2"/>
+    <rect x="187" y="222" width="2" height="2"/>
+    <rect x="187" y="224" width="2" height="2"/>
+    <rect x="179" y="226" width="8" height="2"/>
+    <rect x="191" y="214" width="10" height="2"/>
+    <rect x="195" y="216" width="2" height="2"/>
+    <rect x="195" y="218" width="2" height="2"/>
+    <rect x="195" y="220" width="2" height="2"/>
+    <rect x="195" y="222" width="2" height="2"/>
+    <rect x="195" y="224" width="2" height="2"/>
+    <rect x="195" y="226" width="2" height="2"/>
+    <rect x="205" y="214" width="6" height="2"/>
+    <rect x="203" y="216" width="2" height="2"/>
+    <rect x="211" y="216" width="2" height="2"/>
+    <rect x="203" y="218" width="2" height="2"/>
+    <rect x="211" y="218" width="2" height="2"/>
+    <rect x="203" y="220" width="10" height="2"/>
+    <rect x="203" y="222" width="2" height="2"/>
+    <rect x="211" y="222" width="2" height="2"/>
+    <rect x="203" y="224" width="2" height="2"/>
+    <rect x="211" y="224" width="2" height="2"/>
+    <rect x="203" y="226" width="2" height="2"/>
+    <rect x="211" y="226" width="2" height="2"/>
+    <rect x="215" y="214" width="8" height="2"/>
+    <rect x="215" y="216" width="2" height="2"/>
+    <rect x="223" y="216" width="2" height="2"/>
+    <rect x="215" y="218" width="2" height="2"/>
+    <rect x="223" y="218" width="2" height="2"/>
+    <rect x="215" y="220" width="8" height="2"/>
+    <rect x="215" y="222" width="2" height="2"/>
+    <rect x="219" y="222" width="2" height="2"/>
+    <rect x="215" y="224" width="2" height="2"/>
+    <rect x="221" y="224" width="2" height="2"/>
+    <rect x="215" y="226" width="2" height="2"/>
+    <rect x="223" y="226" width="2" height="2"/>
+  </g>
+</svg>

@@ -1,5 +1,15 @@
 # Morningstar v0.1
 
+[![CI](https://github.com/gitwid/upgraded-enigma/actions/workflows/ci.yml/badge.svg)](https://github.com/gitwid/upgraded-enigma/actions/workflows/ci.yml)
+
+<p align="center"><img src="docs/logo.svg" width="480"
+   alt="Morningstar logo: an original scene in the idiom of the Defender (1981) arcade screen — a ship carries one rescued humanoid home while a lander abducts another; the score records the rescue either way."></p>
+
+*The logo is original vector art in the idiom of the Williams Defender (1981)
+arcade screen — see [Experiment 001](docs/experiments/001-defender-two-player.md)
+for why that instrument is a precedent for this one. It contains no copied
+game assets.*
+
 A provenance-preserving observational instrument for personal, emotional, and
 epistemic development.
 

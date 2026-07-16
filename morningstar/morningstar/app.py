@@ -9,6 +9,7 @@ pages themselves.
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Form, HTTPException, Request
@@ -33,6 +34,19 @@ CHAT_STEPS = [
 CAPTURE_FIELDS = ("observation", "phenomenology", "action", "recorded_at",
                   "source", "recall_latency", "location", "weather",
                   "sleep_duration", "heart_rate", "capture_source")
+
+
+def humanize_seconds(seconds: int) -> str:
+    days, rest = divmod(seconds, 86400)
+    hours, rest = divmod(rest, 3600)
+    minutes, _ = divmod(rest, 60)
+    if days:
+        return f"{days}d {hours}h"
+    if hours:
+        return f"{hours}h {minutes}m"
+    if minutes:
+        return f"{minutes}m"
+    return "less than a minute"
 
 
 def default_data_dir() -> Path:
@@ -63,6 +77,20 @@ def create_app(data_dir: str | Path | None = None) -> FastAPI:
         except NotFoundError:
             raise HTTPException(status_code=404, detail="interpretation not found")
 
+    def reentry_line() -> str | None:
+        # Experiment E1 (docs/experiments/001): ground the returning
+        # operator in recorded state — one factual line, no reading of
+        # what the gap means. Display only; nothing is added to the
+        # capture record.
+        captures = store.list_captures(include_hidden=True)
+        if not captures:
+            return None
+        last = datetime.fromisoformat(captures[-1]["committed_at"])
+        elapsed = int((datetime.now(timezone.utc) - last).total_seconds())
+        return (f"Your previous capture (capture "
+                f"{captures[-1]['sequence_number']:03d}) was committed "
+                f"{humanize_seconds(elapsed)} ago.")
+
     # -- home ----------------------------------------------------------
 
     @app.get("/", response_class=HTMLResponse)
@@ -75,7 +103,8 @@ def create_app(data_dir: str | Path | None = None) -> FastAPI:
 
     @app.get("/capture/new", response_class=HTMLResponse)
     def capture_new(request: Request):
-        return render(request, "capture_new.html", values={})
+        return render(request, "capture_new.html", values={},
+                      reentry=reentry_line())
 
     def _form_values(form: dict) -> dict:
         return {k: (form.get(k) or "").strip() for k in CAPTURE_FIELDS}
@@ -156,7 +185,8 @@ def create_app(data_dir: str | Path | None = None) -> FastAPI:
 
     @app.get("/chat", response_class=HTMLResponse)
     def chat_start(request: Request):
-        return render(request, "chat.html", step=0, steps=CHAT_STEPS, values={})
+        return render(request, "chat.html", step=0, steps=CHAT_STEPS,
+                      values={}, reentry=reentry_line())
 
     @app.post("/chat", response_class=HTMLResponse)
     async def chat_step(request: Request):
