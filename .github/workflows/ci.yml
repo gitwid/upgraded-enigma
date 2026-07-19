@@ -8,13 +8,24 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: morningstar
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e ".[dev]"
-      - run: pytest
+      - name: Python reference implementation tests
+        working-directory: morningstar
+        run: |
+          pip install -e ".[dev]"
+          pytest
+      - name: Golden vectors must not drift between reference and Swift port
+        run: |
+          diff -u morningstar/tests/golden/jcs_vectors.json \
+                  ios/MorningstarKit/Tests/MorningstarKitTests/Resources/jcs_vectors.json
+
+  swift-test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: MorningstarKit tests (JCS golden vectors are the acceptance gate)
+        run: swift test --package-path ios/MorningstarKit
