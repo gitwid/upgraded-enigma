@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Archive — the vertical page</title>
+    <style>
+      :root {
+        --bg: #0d0e12;
+        --panel: #15161d;
+        --ink: #e8e6e3;
+        --muted: #8a8a95;
+        --accent: #72e0c8;
+        --line: #262832;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Lato", system-ui, -apple-system, sans-serif;
+        font-weight: 400;
+        line-height: 1.5;
+      }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+
+      header.top {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(13, 14, 18, 0.92);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--line);
+        padding: 16px 20px 12px;
+      }
+      h1 { font-size: 18px; font-weight: 100; letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 12px; }
+      .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+      #q {
+        flex: 1 1 260px;
+        min-width: 200px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        color: var(--ink);
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-size: 15px;
+      }
+      #q:focus { outline: none; border-color: var(--accent); }
+      .meta { color: var(--muted); font-size: 12px; }
+      .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+      .chip {
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--muted);
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+      .expanded { color: var(--muted); font-size: 12px; margin-top: 8px; min-height: 16px; }
+      .expanded b { color: var(--accent); font-weight: 400; }
+
+      main { max-width: 720px; margin: 0 auto; padding: 24px 20px 120px; }
+
+      .entry {
+        border-bottom: 1px solid var(--line);
+        padding: 28px 0;
+        scroll-margin-top: 140px;
+      }
+      .entry:target { background: linear-gradient(90deg, rgba(114,224,200,0.06), transparent); }
+      .entry figure { margin: 0 0 12px; }
+      .entry img, .entry .videobox {
+        width: 100%;
+        border-radius: 10px;
+        display: block;
+        background: #000;
+      }
+      .videobox { position: relative; aspect-ratio: 1 / 1; }
+      .videobox::after {
+        content: "▶ video";
+        position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--ink); font-size: 13px; letter-spacing: 0.1em;
+        background: rgba(0,0,0,0.25);
+      }
+      .caption { margin: 4px 0 10px; white-space: pre-wrap; }
+      .entry .row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+      .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+      .tag { font-size: 11px; color: var(--accent); border: 1px solid var(--line); padding: 2px 8px; border-radius: 999px; }
+      .hash { color: var(--muted); }
+      .permalink { font-size: 12px; }
+      .anchor { font-size: 11px; color: var(--muted); }
+      mark { background: rgba(114,224,200,0.25); color: inherit; padding: 0 1px; border-radius: 2px; }
+
+      #dropzone {
+        display: none;
+        border: 1px dashed var(--line);
+        border-radius: 10px;
+        padding: 28px;
+        text-align: center;
+        color: var(--muted);
+        margin: 20px 0;
+      }
+      #dropzone.show { display: block; }
+      #dropzone.drag { border-color: var(--accent); color: var(--accent); }
+      .empty { color: var(--muted); text-align: center; padding: 60px 0; }
+    </style>
+  </head>
+  <body>
+    <header class="top">
+      <h1>Archive · the vertical page</h1>
+      <div class="controls">
+        <input id="q" type="search" placeholder="search your archive — try 'fractal' or 'queer'" autocomplete="off" />
+        <span class="meta" id="count"></span>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="expanded" id="expanded"></div>
+    </header>
+
+    <main>
+      <div id="dropzone">
+        Couldn't auto-load <code>archive.json</code> (you may be opening this from
+        <code>file://</code>). Drag your <code>archive.json</code> here, or click to choose it.
+        <input id="filepick" type="file" accept="application/json,.json" hidden />
+      </div>
+      <div id="list"></div>
+      <div class="empty" id="empty" hidden>No entries match. Loosen the query or clear the tag filters.</div>
+    </main>
+
+    <script>
+      var STATE = { entries: [], taxonomy: { concepts: {} }, activeTags: new Set(), query: "" };
+
+      function escapeHtml(s) {
+        return (s || "").replace(/[&<>"]/g, function (c) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+        });
+      }
+
+      // Build the reverse map: token -> Set(concept keys), plus concept -> radiates.
+      function buildExpansion(taxonomy) {
+        var toConcept = {};
+        var concepts = taxonomy.concepts || {};
+        Object.keys(concepts).forEach(function (key) {
+          var words = [key].concat(concepts[key].radiates || []);
+          words.forEach(function (w) {
+            w = w.toLowerCase();
+            (toConcept[w] = toConcept[w] || new Set()).add(key);
+          });
+        });
+        return { toConcept: toConcept, concepts: concepts };
+      }
+
+      // Expand a raw query into the full set of terms to match against.
+      function expandTerms(rawTokens, exp) {
+        var terms = new Set();
+        var hitConcepts = new Set();
+        rawTokens.forEach(function (t) {
+          terms.add(t);
+          var concepts = exp.toConcept[t];
+          if (concepts) {
+            concepts.forEach(function (ck) {
+              hitConcepts.add(ck);
+              terms.add(ck.toLowerCase());
+              (exp.concepts[ck].radiates || []).forEach(function (r) { terms.add(r.toLowerCase()); });
+            });
+          }
+        });
+        return { terms: terms, hitConcepts: hitConcepts };
+      }
+
+      function entryHaystack(e) {
+        var parts = [e.caption || "", (e.hashtags || []).join(" "), (e.tags || []).join(" "), e.author || "", e.notes || ""];
+        (e.media || []).forEach(function (m) { if (m.alt) parts.push(m.alt); });
+        return parts.join("  ").toLowerCase();
+      }
+
+      function matches(e, expanded, activeTags) {
+        if (activeTags.size) {
+          var etags = new Set(e.tags || []);
+          for (var t of activeTags) if (!etags.has(t)) return false;
+        }
+        if (!expanded.terms.size) return true;
+        var hay = entryHaystack(e);
+        for (var term of expanded.terms) {
+          if (term && hay.indexOf(term) !== -1) return true;
+        }
+        return false;
+      }
+
+      function highlight(text, terms) {
+        var out = escapeHtml(text);
+        var sorted = Array.from(terms).filter(Boolean).sort(function (a, b) { return b.length - a.length; });
+        sorted.forEach(function (term) {
+          try {
+            var re = new RegExp("(" + term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi");
+            out = out.replace(re, "<mark>$1</mark>");
+          } catch (e) {}
+        });
+        return out;
+      }
+
+      function renderChips() {
+        var el = document.getElementById("chips");
+        el.innerHTML = "";
+        Object.keys(STATE.taxonomy.concepts || {}).forEach(function (key) {
+          var btn = document.createElement("button");
+          btn.className = "chip";
+          btn.textContent = STATE.taxonomy.concepts[key].label || key;
+          btn.setAttribute("aria-pressed", STATE.activeTags.has(key));
+          btn.onclick = function () {
+            if (STATE.activeTags.has(key)) STATE.activeTags.delete(key);
+            else STATE.activeTags.add(key);
+            render();
+          };
+          el.appendChild(btn);
+        });
+      }
+
+      function render() {
+        var exp = buildExpansion(STATE.taxonomy);
+        var tokens = STATE.query.toLowerCase().split(/[^\p{L}\p{N}_]+/u).filter(Boolean);
+        var expanded = expandTerms(tokens, exp);
+
+        // Show the user what their query radiated into.
+        var expEl = document.getElementById("expanded");
+        if (expanded.hitConcepts.size) {
+          var extra = Array.from(expanded.terms).filter(function (t) { return tokens.indexOf(t) === -1; });
+          expEl.innerHTML = "radiating through <b>" + Array.from(expanded.hitConcepts).map(escapeHtml).join("</b>, <b>") +
+            "</b> → also matching: " + escapeHtml(extra.slice(0, 12).join(", ")) + (extra.length > 12 ? "…" : "");
+        } else {
+          expEl.textContent = "";
+        }
+
+        var list = document.getElementById("list");
+        list.innerHTML = "";
+        var shown = 0;
+        var hlTerms = expanded.terms.size ? expanded.terms : new Set();
+
+        STATE.entries.forEach(function (e) {
+          if (!matches(e, expanded, STATE.activeTags)) return;
+          shown++;
+          var m = (e.media || [])[0] || {};
+          var mediaHtml = "";
+          if (m.type === "video") {
+            mediaHtml = m.poster
+              ? '<div class="videobox" style="background-image:url(\'' + m.poster + '\');background-size:cover"></div>'
+              : '<div class="videobox"></div>';
+          } else if (m.src) {
+            mediaHtml = '<img loading="lazy" src="' + m.src + '" alt="' + escapeHtml(m.alt || "") + '" />';
+          }
+          var tagsHtml = (e.tags || []).map(function (t) { return '<span class="tag">' + escapeHtml(t) + "</span>"; }).join("");
+          var hashHtml = (e.hashtags || []).map(function (h) { return "#" + escapeHtml(h); }).join(" ");
+          var when = e.posted_at || e.captured_at || "";
+          var art = document.createElement("article");
+          art.className = "entry";
+          art.id = e.id;
+          art.innerHTML =
+            (mediaHtml ? "<figure>" + mediaHtml + "</figure>" : "") +
+            (e.caption ? '<p class="caption">' + highlight(e.caption, hlTerms) + "</p>" : "") +
+            (tagsHtml ? '<div class="tags">' + tagsHtml + "</div>" : "") +
+            (hashHtml ? '<div class="hash">' + highlight(hashHtml, hlTerms) + "</div>" : "") +
+            '<div class="row">' +
+              '<span class="meta">' + escapeHtml(e.author ? "@" + e.author : "") + (when ? " · " + escapeHtml(when.slice(0, 10)) : "") + "</span>" +
+              (e.permalink ? '<a class="permalink" href="' + escapeHtml(e.permalink) + '" target="_blank" rel="noopener">source ↗</a>' : "") +
+            "</div>" +
+            '<a class="anchor" href="#' + escapeHtml(e.id) + '">#' + escapeHtml(e.id) + "</a>";
+          list.appendChild(art);
+        });
+
+        document.getElementById("empty").hidden = shown !== 0;
+        document.getElementById("count").textContent =
+          shown + " / " + STATE.entries.length + " entries" + (STATE.activeTags.size ? " · " + STATE.activeTags.size + " tag filter(s)" : "");
+      }
+
+      function ingest(entries) {
+        STATE.entries = Array.isArray(entries) ? entries : [];
+        STATE.entries.sort(function (a, b) {
+          return (b.posted_at || b.captured_at || "").localeCompare(a.posted_at || a.captured_at || "");
+        });
+        renderChips();
+        render();
+      }
+
+      function wireInputs() {
+        document.getElementById("q").addEventListener("input", function (ev) {
+          STATE.query = ev.target.value;
+          render();
+        });
+        var dz = document.getElementById("dropzone");
+        var pick = document.getElementById("filepick");
+        dz.addEventListener("click", function () { pick.click(); });
+        dz.addEventListener("dragover", function (ev) { ev.preventDefault(); dz.classList.add("drag"); });
+        dz.addEventListener("dragleave", function () { dz.classList.remove("drag"); });
+        dz.addEventListener("drop", function (ev) {
+          ev.preventDefault(); dz.classList.remove("drag");
+          var f = ev.dataTransfer.files[0]; if (f) readFile(f);
+        });
+        pick.addEventListener("change", function (ev) {
+          var f = ev.target.files[0]; if (f) readFile(f);
+        });
+      }
+
+      function readFile(file) {
+        var r = new FileReader();
+        r.onload = function () {
+          try { ingest(JSON.parse(r.result)); document.getElementById("dropzone").classList.remove("show"); }
+          catch (e) { alert("Not valid JSON: " + e.message); }
+        };
+        r.readAsText(file);
+      }
+
+      // Boot: load taxonomy + archive; fall back to the dropzone if fetch is blocked.
+      (function boot() {
+        wireInputs();
+        Promise.all([
+          fetch("./taxonomy.json").then(function (r) { return r.json(); }).catch(function () { return { concepts: {} }; }),
+          fetch("./archive.json").then(function (r) { if (!r.ok) throw new Error("no archive"); return r.json(); }),
+        ])
+          .then(function (res) { STATE.taxonomy = res[0]; ingest(res[1]); })
+          .catch(function () {
+            // taxonomy may still have loaded; try it alone, then show dropzone for the archive.
+            fetch("./taxonomy.json").then(function (r) { return r.json(); }).then(function (t) { STATE.taxonomy = t; renderChips(); }).catch(function () {});
+            document.getElementById("dropzone").classList.add("show");
+          });
+      })();
+    </script>
+  </body>
+</html>

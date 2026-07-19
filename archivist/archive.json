@@ -1,0 +1,79 @@
+[
+  {
+    "id": "sample-fractal-01",
+    "source": "instagram",
+    "permalink": "https://www.instagram.com/p/sample-fractal-01/",
+    "author": "example.studio",
+    "captured_at": "2026-07-19T12:00:00.000Z",
+    "posted_at": "2026-05-02T09:14:00.000Z",
+    "media": [
+      {
+        "type": "image",
+        "src": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Crect width='320' height='320' fill='%23101014'/%3E%3Cg fill='none' stroke='%2372e0c8' stroke-width='1'%3E%3Ccircle cx='160' cy='160' r='140'/%3E%3Ccircle cx='160' cy='160' r='90'/%3E%3Ccircle cx='160' cy='160' r='56'/%3E%3Ccircle cx='160' cy='160' r='35'/%3E%3Ccircle cx='160' cy='160' r='22'/%3E%3C/g%3E%3C/svg%3E",
+        "alt": "Recursive nested circles forming a self-similar target pattern"
+      }
+    ],
+    "caption": "iterating on a Julia set study today. recursion all the way down.",
+    "hashtags": ["juliaset", "generative", "recursion"],
+    "tags": ["fractal", "mathematical-aesthetics", "process"],
+    "notes": "The one that made me start this archive."
+  },
+  {
+    "id": "sample-queer-01",
+    "source": "instagram",
+    "permalink": "https://www.instagram.com/p/sample-queer-01/",
+    "author": "chosen.family.zine",
+    "captured_at": "2026-07-19T12:01:00.000Z",
+    "posted_at": "2026-06-11T18:30:00.000Z",
+    "media": [
+      {
+        "type": "image",
+        "src": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Crect width='320' height='53' y='0' fill='%235bcefa'/%3E%3Crect width='320' height='53' y='53' fill='%23f5a9b8'/%3E%3Crect width='320' height='54' y='106' fill='%23ffffff'/%3E%3Crect width='320' height='53' y='160' fill='%23f5a9b8'/%3E%3Crect width='320' height='53' y='213' fill='%235bcefa'/%3E%3Crect width='320' height='54' y='266' fill='%23101014'/%3E%3C/svg%3E",
+        "alt": "Horizontal colour bands referencing a pride flag"
+      }
+    ],
+    "caption": "t4t kinship. building the world we needed. pride was a riot and still is.",
+    "hashtags": ["t4t", "chosenfamily", "pride"],
+    "tags": ["queer"],
+    "notes": ""
+  },
+  {
+    "id": "sample-both-01",
+    "source": "instagram",
+    "permalink": "https://www.instagram.com/p/sample-both-01/",
+    "author": "example.studio",
+    "captured_at": "2026-07-19T12:02:00.000Z",
+    "posted_at": "2026-06-28T21:05:00.000Z",
+    "media": [
+      {
+        "type": "video",
+        "src": "",
+        "poster": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Crect width='320' height='320' fill='%23140a1e'/%3E%3Cpolygon points='160,20 300,300 20,300' fill='none' stroke='%23c792ea' stroke-width='1'/%3E%3Cpolygon points='160,160 230,300 90,300' fill='none' stroke='%23c792ea' stroke-width='1'/%3E%3Cpolygon points='160,90 195,160 125,160' fill='none' stroke='%23c792ea' stroke-width='1'/%3E%3C/svg%3E",
+        "alt": "Nested triangles forming a Sierpinski-like recursive structure"
+      }
+    ],
+    "caption": "sierpinski loop for the trans day of visibility fundraiser. self-similar, like community.",
+    "hashtags": ["sierpinski", "tdov", "generative"],
+    "tags": ["fractal", "mathematical-aesthetics", "queer", "process"],
+    "notes": "Proof the two vocabularies overlap in my work."
+  },
+  {
+    "id": "sample-math-01",
+    "source": "instagram",
+    "permalink": "https://www.instagram.com/p/sample-math-01/",
+    "author": "penrose.daily",
+    "captured_at": "2026-07-19T12:03:00.000Z",
+    "posted_at": "2026-07-01T08:00:00.000Z",
+    "media": [
+      {
+        "type": "image",
+        "src": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Crect width='320' height='320' fill='%230d0d0d'/%3E%3Cg fill='none' stroke='%23ffd479' stroke-width='1'%3E%3Cpolygon points='160,40 250,160 160,280 70,160'/%3E%3Cpolygon points='160,40 250,160 160,160'/%3E%3Cpolygon points='160,280 70,160 160,160'/%3E%3C/g%3E%3C/svg%3E",
+        "alt": "Rhombus tiling suggesting an aperiodic Penrose pattern"
+      }
+    ],
+    "caption": "aperiodic tiling never repeats. non-euclidean daydream.",
+    "hashtags": ["penrose", "tiling", "geometry"],
+    "tags": ["mathematical-aesthetics"],
+    "notes": ""
+  }
+]

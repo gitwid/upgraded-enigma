@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://upgraded-enigma.local/archivist/entry.schema.json",
+  "title": "Archive Entry",
+  "description": "One captured unit of experience. A stable coordinate in the personal archive: reachable, queryable, and linked back to its original context.",
+  "type": "object",
+  "required": ["id", "captured_at", "media"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable identifier. Prefer the source shortcode so re-capture is idempotent (deduplicated).",
+      "minLength": 1
+    },
+    "source": {
+      "type": "string",
+      "description": "Where this entry originated. Free-form but conventionally 'instagram'.",
+      "default": "instagram"
+    },
+    "permalink": {
+      "type": "string",
+      "description": "Link back to the original context. Addressability: every entry must be reachable at its origin.",
+      "format": "uri"
+    },
+    "author": {
+      "type": "string",
+      "description": "Handle of the account that posted the content."
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this entry entered your archive (ingestion time)."
+    },
+    "posted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the content was originally posted, if recoverable from the DOM."
+    },
+    "media": {
+      "type": "array",
+      "description": "One or more media units. A carousel post yields several.",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "additionalProperties": false,
+        "properties": {
+          "type": { "type": "string", "enum": ["image", "video"] },
+          "src": { "type": "string", "description": "Media URL as seen at capture time. May expire; see 'local' for a durable copy." },
+          "local": { "type": "string", "description": "Optional path to a downloaded, non-volatile copy under the archive." },
+          "poster": { "type": "string", "description": "Poster/thumbnail URL for video." },
+          "alt": { "type": "string", "description": "Alt text as exposed by the platform. Often a machine caption — useful signal for search." }
+        }
+      }
+    },
+    "caption": {
+      "type": "string",
+      "description": "The post's caption text, verbatim."
+    },
+    "hashtags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Hashtags extracted from the caption (without the leading #)."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Your taxonomy classifications (e.g. 'queer', 'fractal', 'mathematical-aesthetics'). Post-capture enrichment."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Your own annotation. The archivist's marginalia."
+    }
+  }
+}

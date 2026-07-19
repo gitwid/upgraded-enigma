@@ -1,0 +1,43 @@
+{
+  "$comment": "Your personal ontology. Each concept is a coordinate; its 'radiates' list is the semantic neighbourhood that a query for that concept should also reach. This is the deterministic, offline substitute for ML embeddings: you decide what 'fractal' means in YOUR archive. Edit freely — this file is the point of the whole system.",
+  "version": 1,
+  "concepts": {
+    "fractal": {
+      "label": "Fractal geometry",
+      "radiates": [
+        "mandelbrot", "julia", "self-similar", "self-similarity", "recursion",
+        "recursive", "iteration", "geometry", "mathematical", "mathematics",
+        "math", "sierpinski", "koch", "l-system", "strange-attractor",
+        "chaos", "tessellation", "spiral", "golden-ratio", "phi"
+      ]
+    },
+    "mathematical-aesthetics": {
+      "label": "Mathematical aesthetics",
+      "radiates": [
+        "geometry", "topology", "symmetry", "asymmetry", "tiling",
+        "penrose", "voronoi", "delaunay", "parametric", "generative",
+        "algorithmic", "isosurface", "manifold", "lattice", "moire",
+        "wireframe", "polyhedron", "hyperbolic", "non-euclidean"
+      ]
+    },
+    "queer": {
+      "label": "Queerness",
+      "$comment": "Curate this by hand. Model inference will not know what 'previously associated with queerness' means in YOUR history — you do. This list is yours to grow.",
+      "radiates": [
+        "queerness", "lgbtq", "lgbtqia", "trans", "transgender", "nonbinary",
+        "non-binary", "genderqueer", "genderfluid", "gender", "dyke", "sapphic",
+        "lesbian", "gay", "bisexual", "pansexual", "asexual", "drag",
+        "ballroom", "pride", "camp", "transfeminine", "t4t", "kinship",
+        "chosen-family"
+      ]
+    },
+    "process": {
+      "label": "Process & making",
+      "radiates": [
+        "generative", "code", "shader", "glsl", "processing", "openframeworks",
+        "houdini", "blender", "plotter", "risograph", "print", "studio",
+        "sketch", "wip", "work-in-progress"
+      ]
+    }
+  }
+}
