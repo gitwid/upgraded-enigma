@@ -7,8 +7,12 @@ import MorningstarKit
 /// network). Draft text lives only here until Play commits it.
 @Observable
 final class AppModel {
-    let store: FileEventStore
-    var captures: [Capture] = []
+    let store: SQLiteStore
+    private(set) var captures: [Capture] = []
+    /// Whether the archive currently includes hidden captures.
+    var includeHidden = false {
+        didSet { refresh() }
+    }
 
     // Transient capture draft — the three channels plus optional detail.
     var observation = ""
@@ -21,19 +25,34 @@ final class AppModel {
     // The Mind wander pane: purposeless writing that is NEVER persisted.
     var wander = ""
 
+    /// Cached so the re-entry line does not query on every render. Reflects
+    /// the true last capture, hidden or not.
+    private var lastCapture: (sequenceNumber: Int, committedAt: String)?
+
     init() {
         let base = FileManager.default.urls(for: .applicationSupportDirectory,
                                             in: .userDomainMask)[0]
             .appendingPathComponent("Morningstar", isDirectory: true)
-        // A failure here is unrecoverable for the instrument; surface loudly.
-        store = try! FileEventStore(directory: base)
-        captures = store.captures
+        // A store that cannot be opened leaves nothing to record into; the
+        // instrument has no meaningful degraded mode.
+        store = try! SQLiteStore(directory: base)
+        refresh()
+    }
+
+    func refresh() {
+        captures = (try? store.captures(includeHidden: includeHidden)) ?? []
+        if let last = try? store.captures(includeHidden: true).last {
+            lastCapture = (last.sequenceNumber, last.committedAt)
+        } else {
+            lastCapture = nil
+        }
     }
 
     var reentryLine: String? {
-        guard let last = captures.last else { return nil }
-        let elapsed = Date().timeIntervalSince(
-            ISO8601DateFormatter.morningstar.date(from: last.createdAt) ?? Date())
+        guard let last = lastCapture,
+              let committed = ISO8601DateFormatter.morningstar.date(from: last.committedAt)
+        else { return nil }
+        let elapsed = Date().timeIntervalSince(committed)
         return "Your previous capture (capture \(String(format: "%03d", last.sequenceNumber))) "
             + "was committed \(humanize(elapsed)) ago."
     }
@@ -50,7 +69,7 @@ final class AppModel {
             source: source.isEmpty ? nil : source,
             recallLatency: recallLatency.isEmpty ? nil : recallLatency,
             captureSource: "ios-app")
-        captures = store.captures
+        refresh()
         return capture
     }
 
@@ -62,14 +81,16 @@ final class AppModel {
         wander = ""
     }
 
+    // MARK: - annotations
+
+    /// Bumped on each annotation so observing views recompute; the store's
+    /// query results aren't themselves observable.
+    private(set) var annotationsVersion = 0
+
     func annotations(for capture: Capture) -> [Annotation] {
         _ = annotationsVersion  // read so SwiftUI tracks this dependency
-        return store.annotations(for: capture.id)
+        return (try? store.annotations(for: capture.id)) ?? []
     }
-
-    /// Bumped on each annotation so observing views recompute. The store's
-    /// own arrays aren't @Observable, so AppModel carries the signal.
-    private(set) var annotationsVersion = 0
 
     @discardableResult
     func annotate(_ capture: Capture, type: String, body: String) -> Annotation? {
@@ -78,6 +99,28 @@ final class AppModel {
         return annotation
     }
 
+    // MARK: - visibility & deletion
+
+    func hide(_ capture: Capture) {
+        try? store.hide(captureID: capture.id)
+        refresh()
+    }
+
+    func unhide(_ capture: Capture) {
+        try? store.unhide(captureID: capture.id)
+        refresh()
+    }
+
+    /// Permanent, irreversible deletion of a capture's content. See the
+    /// confirmation copy in ArchiveView for the trade-off this carries.
+    func redact(_ capture: Capture) {
+        try? store.redact(captureID: capture.id)
+        annotationsVersion += 1
+        refresh()
+    }
+
+    // MARK: - audit
+
     func verify() -> IntegrityReport {
         (try? store.verifyIntegrity()) ?? IntegrityReport()
     }
@@ -85,15 +128,16 @@ final class AppModel {
 
 extension ISO8601DateFormatter {
     static let morningstar: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter
     }()
 }
 
 func humanize(_ seconds: TimeInterval) -> String {
-    let s = Int(max(0, seconds))
-    let days = s / 86400, hours = (s % 86400) / 3600, minutes = (s % 3600) / 60
+    let total = Int(max(0, seconds))
+    let days = total / 86400, hours = (total % 86400) / 3600, minutes = (total % 3600) / 60
     if days > 0 { return "\(days)d \(hours)h" }
     if hours > 0 { return "\(hours)h \(minutes)m" }
     if minutes > 0 { return "\(minutes)m" }

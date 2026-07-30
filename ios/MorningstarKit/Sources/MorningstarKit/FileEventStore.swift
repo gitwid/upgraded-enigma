@@ -1,30 +1,18 @@
-/// v0 storage: an append-only, hash-chained event log (one canonical
-/// JSON event per line). The ledger file is the evidence; captures,
-/// annotations, and interpretations are materialized in memory on load.
+/// **Superseded by `SQLiteStore`.** Retained only so ledgers written by the
+/// interim iOS build remain readable; new stores should use `SQLiteStore`,
+/// which enforces append-only behavior in the database itself and carries
+/// the full reference surface (hide/redact, visibility overlay, version
+/// registries). There is no automatic ledger→SQLite import yet — captures
+/// from an interim ledger can be read here and re-committed deliberately.
 ///
-/// This is the interim store for the iOS shell — the SQLite/GRDB port
-/// (with database-level immutability triggers, hide/redact, and the
-/// full audit surface) is the next milestone and lands on desktop.
-/// The primary invariant holds here exactly as in the reference
-/// implementation: nothing in the file is ever rewritten; every write
-/// appends an event; `verifyIntegrity()` re-derives everything.
+/// An append-only, hash-chained event log (one canonical JSON event per
+/// line). The ledger file is the evidence; captures, annotations, and
+/// interpretations are materialized in memory on load. The primary
+/// invariant holds here as in the reference implementation: nothing in the
+/// file is ever rewritten; every write appends an event;
+/// `verifyIntegrity()` re-derives everything.
 
 import Foundation
-
-public enum StoreError: Error, Equatable {
-    case notFound(String)
-    case corruptLedger(String)
-}
-
-public struct IntegrityReport: Equatable, Sendable {
-    public var ok: Bool { errors.isEmpty }
-    public var errors: [String] = []
-    public var warnings: [String] = []
-    public var eventCount = 0
-    public var captureCount = 0
-    public var annotationCount = 0
-    public var interpretationCount = 0
-}
 
 public final class FileEventStore {
     public let ledgerURL: URL

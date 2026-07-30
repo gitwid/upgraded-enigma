@@ -55,21 +55,50 @@ re-meant onto the instrument:
   - `Models.swift` — `hashContent()` mirrors the exact content dictionaries in
     `store.py`, so Swift hashes equal Python hashes byte-for-byte.
   - `Leakage.swift` — the reference rule table, non-blocking.
-  - `FileEventStore.swift` — interim append-only JSONL ledger + hash chain +
-    `verifyIntegrity()`.
+  - `SQLite.swift` / `Migrations.swift` / `SQLiteStore.swift` — the store, at
+    parity with `store.py` (see below).
+  - `FileEventStore.swift` — **superseded**; retained only so ledgers written
+    by the interim build stay readable.
 - **`MorningstarApp`** (SwiftUI, XcodeGen `project.yml`) — the shell described
   above. Glass chrome, paper evidence: controls float on translucent material,
   evidence text stays plain and inert.
 
-## Storage roadmap
+## Storage
 
-`FileEventStore` is the v0 substrate: one canonical-JSON event per line,
-hash-chained, replayed on load. It holds the primary invariant (nothing
-rewritten; every write appends an event; verification re-derives everything)
-but not yet the reference implementation's full surface. The next milestone,
-on desktop, is a **GRDB/SQLite store** with database-level immutability
-triggers, hide-vs-redact, capture-visibility overlay, and the interpretation
-revision/branch tables — reaching parity with `store.py`.
+`SQLiteStore` is the store, at parity with the reference implementation: the
+same DDL, the same append-only triggers and `_guard` maintenance latch, the
+same event ledger and hash chains, version registries, `capture_visibility`
+overlay, hide-vs-redact, and interpretation revision/branch tables. A database
+written by either implementation is the same database.
+
+**Raw SQLite3, not GRDB** (this note previously named GRDB). The reasoning
+follows the reference implementation's own (`../morningstar/docs/ARCHITECTURE.md`):
+this domain is append-only — rows are inserted, never updated — so an ORM's
+central machinery is exactly what the design must prevent, and plain SQL keeps
+the schema and its triggers inspectable and byte-identical to the reference.
+It also adds no dependency, which matters here because the cloud container has
+no Swift toolchain: macOS CI is the only compiler, so unverifiable third-party
+API surface is a real risk. Reversible later without changing the store API.
+
+Immutability is enforced three ways, as in the reference: no update API on
+evidence, SQLite triggers that reject `UPDATE`/`DELETE` (so even hand-written
+SQL against the file fails), and hash verification. Redaction is the single
+sanctioned mutation: it opens the latch inside one transaction, blanks the
+capture, its annotations, and the event payloads that carried the content,
+keeps rows/ordering/original hashes so the chain stays continuous, and appends
+a `capture_redacted` event. The audit reports redactions as warnings, never as
+tampering.
+
+`FileEventStore` (the interim JSONL ledger) is superseded and kept only for
+reading old ledgers. **Follow-up:** no automatic ledger→SQLite import exists;
+captures from an interim ledger can be read with `FileEventStore` and
+re-committed deliberately. Nothing shipped on the interim store, so no real
+evidence is affected.
+
+One deliberate difference from the reference: timestamps here are ISO-8601 with
+millisecond precision (Swift's `ISO8601DateFormatter`) where Python writes
+microseconds. Both are opaque strings to the protocol — hashes cover whatever
+string was recorded — so this affects nothing but appearance.
 
 ## Desktop-only (not doable in the cloud build container)
 

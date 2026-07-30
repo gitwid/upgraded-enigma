@@ -42,6 +42,40 @@ public struct Capture: Equatable, Sendable {
     public let previousHash: String
     public let committedAt: String
     public let integrityHash: String
+    /// Content permanently deleted by the operator. Not part of the hashed
+    /// content — a redaction is recorded as its own event.
+    public let redacted: Bool
+    /// A view preference, not evidence: hidden captures are still stored,
+    /// still chained, still exported.
+    public let hidden: Bool
+
+    public init(
+        id: String, sequenceNumber: Int, createdAt: String, recordedAt: String?,
+        timezone: String, observation: String, phenomenology: String, action: String,
+        source: String?, recallLatency: String?, protocolVersion: String,
+        schemaVersion: String, contextSnapshot: ContextSnapshot, previousHash: String,
+        committedAt: String, integrityHash: String,
+        redacted: Bool = false, hidden: Bool = false
+    ) {
+        self.id = id
+        self.sequenceNumber = sequenceNumber
+        self.createdAt = createdAt
+        self.recordedAt = recordedAt
+        self.timezone = timezone
+        self.observation = observation
+        self.phenomenology = phenomenology
+        self.action = action
+        self.source = source
+        self.recallLatency = recallLatency
+        self.protocolVersion = protocolVersion
+        self.schemaVersion = schemaVersion
+        self.contextSnapshot = contextSnapshot
+        self.previousHash = previousHash
+        self.committedAt = committedAt
+        self.integrityHash = integrityHash
+        self.redacted = redacted
+        self.hidden = hidden
+    }
 
     /// Mirrors the capture content dict in store.py::commit_capture.
     public static func hashContent(
