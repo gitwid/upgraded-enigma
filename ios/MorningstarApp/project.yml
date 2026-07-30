@@ -1,0 +1,36 @@
+# XcodeGen spec. On desktop: `brew install xcodegen && cd ios/MorningstarApp && xcodegen`
+# then open Morningstar.xcodeproj. (Manual path: create an iOS App target,
+# add the local MorningstarKit package, drop the Sources/ files in.)
+name: Morningstar
+options:
+  bundleIdPrefix: com.morningstar
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+packages:
+  MorningstarKit:
+    path: ../MorningstarKit
+targets:
+  Morningstar:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - Sources
+    dependencies:
+      - package: MorningstarKit
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: Morningstar
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        # No network use; the instrument is local-first by construction.
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        MARKETING_VERSION: "0.2.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: false
+        SWIFT_VERSION: "5.9"
