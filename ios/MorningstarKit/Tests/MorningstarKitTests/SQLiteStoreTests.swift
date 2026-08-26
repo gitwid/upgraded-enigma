@@ -323,8 +323,8 @@ final class SQLiteStoreTests: XCTestCase {
         XCTAssertEqual(try store.interpretations().count, 1)
         XCTAssertEqual(try store.interpretations().first?.current.confidence, 0.4)
         // Reopening must not re-run migrations or re-register versions.
-        XCTAssertEqual(try store.schemaVersions().count, 2)
-        XCTAssertEqual(try store.protocolVersions().count, 2)
+        XCTAssertEqual(try store.schemaVersions().count, migrations.count)
+        XCTAssertEqual(try store.protocolVersions().count, migrations.count)
         let report = try store.verifyIntegrity()
         XCTAssertTrue(report.ok, "\(report.errors)")
     }
