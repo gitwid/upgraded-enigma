@@ -59,7 +59,7 @@
   .lede { max-width:62ch; color:var(--muted); margin:0; font-size:15.5px; }
   .lede strong { color:var(--ink); font-weight:600; }
 
-  .layout { display:grid; grid-template-columns:minmax(340px,392px) 1fr; gap:34px; align-items:start; margin-top:30px; }
+  .layout { display:grid; grid-template-columns:minmax(320px,428px) 1fr; gap:34px; align-items:start; margin-top:30px; }
   /* grid items default to min-width:auto and refuse to shrink below the
      device's intrinsic width; without this the page scrolls sideways on a phone */
   .layout > * { min-width:0; }
@@ -73,22 +73,26 @@
   .stage-col { position:sticky; top:24px; }
 
   /* ---- device ---- */
+  /* iPhone 17 Pro: 402 x 874 pt (2622 x 1206 @3x). Width drives the frame and
+     aspect-ratio derives the height, so the proportions survive any column
+     width instead of being pinned to one pixel height. */
   .device {
-    max-width:100%;
-    background:#0B0E12; border-radius:44px; padding:11px;
+    width:min(428px,100%);
+    background:#0B0E12; border-radius:66px; padding:12px;
     box-shadow:var(--shadow); border:1px solid rgba(255,255,255,.08);
   }
   .screen {
     background:var(--paper); color:var(--app-ink);
-    border-radius:34px; height:clamp(560px,74vh,748px); overflow:hidden;
+    border-radius:54px; width:100%; aspect-ratio:402/874; overflow:hidden;
     display:flex; flex-direction:column; position:relative;
   }
-  .notch {
-    position:absolute; top:8px; left:50%; transform:translateX(-50%);
-    width:104px; height:24px; background:#0B0E12; border-radius:14px; z-index:5;
+  /* Dynamic Island, not a notch: ~125 x 36 pt, inset from the top edge. */
+  .island {
+    position:absolute; top:2.6%; left:50%; transform:translateX(-50%);
+    width:31.1%; aspect-ratio:125/36; background:#000; border-radius:999px; z-index:5;
   }
-  /* clear the notch, as the real app's safe area does */
-  .screen-scroll { flex:1; overflow-y:auto; overscroll-behavior:contain; padding-top:34px; }
+  /* clear the island, as the real app's safe area does */
+  .screen-scroll { flex:1; overflow-y:auto; overscroll-behavior:contain; padding-top:12%; }
   .pad { padding:20px; }
 
   /* app typography */
@@ -252,9 +256,10 @@
 
   <div class="layout">
     <div class="stage-col">
+      <p class="eyebrow" style="margin:0 0 10px">iPhone 17 Pro · 402 × 874 pt · Dynamic Island</p>
       <div class="device">
         <div class="screen">
-          <div class="notch"></div>
+          <div class="island"></div>
           <div class="screen-scroll" id="screen"></div>
         </div>
       </div>
@@ -333,7 +338,7 @@
         <div class="bytes">brew install xcodegen
 cd ios/MorningstarApp &amp;&amp; xcodegen
 open Morningstar.xcodeproj   # then run on a simulator</div>
-        <div class="caveat"><strong>Fidelity note.</strong> The device screen keeps the app's warm paper palette in
+        <div class="caveat"><strong>Fidelity note.</strong> The frame is iPhone 17 Pro geometry (402 × 874 pt, Dynamic Island). The device screen keeps the app's warm paper palette in
           both light and dark, because the real app is light-only today. Inventing a dark mode here would show you
           something that doesn't exist.</div>
       </section>
