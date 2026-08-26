@@ -253,7 +253,7 @@ public final class SQLiteStore {
     public func commitQuickCapture(
         _ text: String, captureSource: String = "quick"
     ) throws -> Capture {
-        try commitCapture(unsorted: text, captureSource: captureSource)
+        try commitCapture(captureSource: captureSource, unsorted: text)
     }
 
     @discardableResult

@@ -125,6 +125,7 @@ public final class SQLiteConnection {
     }
 
     /// Runs `body` inside a transaction, rolling back on any thrown error.
+    @discardableResult
     public func transaction<T>(_ body: () throws -> T) throws -> T {
         lock.lock()
         defer { lock.unlock() }
