@@ -100,6 +100,49 @@ millisecond precision (Swift's `ISO8601DateFormatter`) where Python writes
 microseconds. Both are opaque strings to the protocol — hashes cover whatever
 string was recorded — so this affects nothing but appearance.
 
+## Capture at event speed (protocol 0.3)
+
+The protocol has always recorded `recall_latency` — an admission that memory
+degrades between an event and the writing of it. Nothing in the app did
+anything about that gap; the four-stage journey widens it. Protocol 0.3 adds a
+fast path.
+
+- **The `unsorted` channel.** A quick capture records one blurt of text,
+  explicitly *not* separated into observation / phenomenology / action. This is
+  the honest record: at speed nobody has decided which part is which, and
+  filing it into a channel it may not belong in would be a small lie told by
+  the software. `nil` on captures written through the journey.
+- **Sorting later is an annotation, never an edit** (`sortLater`). Deciding
+  afterwards what was observation and what was already interpretation is later
+  knowledge *about* the evidence. The original stays exactly as taken down, and
+  its hash is untouched.
+- **Immediacy is never asserted.** A quick capture records `capture_source`
+  (the path taken — a fact) and leaves `recall_latency` unstated. Whether you
+  spoke at the moment or three hours later is yours to say, not the app's to
+  assume.
+- **No leakage checks on the fast path.** They belong to a review step and
+  there isn't one here. Nothing may stand between a person and recording what
+  just happened.
+- **Dictation needs no code.** The system keyboard's microphone runs on-device;
+  no speech leaves the phone. Any other kind of dictation would be
+  unacceptable here.
+
+**Versioned hashed content.** `unsorted` joins hashed capture content *from 0.3
+onward*, and content is always rebuilt from each object's own recorded protocol
+version (`Morningstar.contentIncludesUnsorted`). Without that, bumping the
+protocol would silently invalidate every capture written before it — the exact
+failure the "never re-hash history" rule exists to prevent. `QuickCaptureTests`
+pins this: a 0.2-era row still verifies in a 0.3 store, beside 0.3 captures.
+
+### Guardrails (deliberately absent features)
+
+Speed invites compulsion, so the fast path is bounded on purpose. There are
+**no streaks, no counts, no capture reminders, no notifications, no
+"you haven't recorded today"** — the app never asks you to capture, and never
+rewards frequency. `AppShortcut` phrases exist so *you* can reach the
+instrument quickly; nothing reaches back. The re-entry line stays a single
+factual sentence about elapsed time and reads nothing into it.
+
 ## Desktop-only (not doable in the cloud build container)
 
 - Building/running the app (Xcode + iOS SDK). `brew install xcodegen && cd

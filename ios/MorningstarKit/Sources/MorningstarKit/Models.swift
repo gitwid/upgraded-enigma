@@ -6,9 +6,18 @@
 import Foundation
 
 public enum Morningstar {
-    public static let appVersion = "0.2.0"
-    public static let protocolVersion = "0.2"
-    public static let schemaVersion = "0.2"
+    public static let appVersion = "0.3.0"
+    public static let protocolVersion = "0.3"
+    public static let schemaVersion = "0.3"
+
+    /// Protocol 0.3 added the `unsorted` channel, so it participates in hashed
+    /// content from 0.3 onward and must be absent from the content of anything
+    /// recorded earlier. Content is always rebuilt from the object's *own*
+    /// recorded version — otherwise a protocol bump would silently invalidate
+    /// every capture written before it.
+    public static func contentIncludesUnsorted(protocolVersion: String) -> Bool {
+        protocolVersion.compare("0.3", options: .numeric) != .orderedAscending
+    }
 }
 
 public struct ContextSnapshot: Codable, Equatable, Sendable {
@@ -42,6 +51,12 @@ public struct Capture: Equatable, Sendable {
     public let previousHash: String
     public let committedAt: String
     public let integrityHash: String
+    /// Text recorded at event speed and deliberately NOT separated into the
+    /// three channels — because separating takes time the moment doesn't have.
+    /// Marking it unsorted is the honest record: nobody has yet decided which
+    /// of it is observation, which is felt, and which is what they did.
+    /// Protocol 0.3 and later. `nil` on captures written through the journey.
+    public let unsorted: String?
     /// Content permanently deleted by the operator. Not part of the hashed
     /// content — a redaction is recorded as its own event.
     public let redacted: Bool
@@ -55,8 +70,9 @@ public struct Capture: Equatable, Sendable {
         source: String?, recallLatency: String?, protocolVersion: String,
         schemaVersion: String, contextSnapshot: ContextSnapshot, previousHash: String,
         committedAt: String, integrityHash: String,
-        redacted: Bool = false, hidden: Bool = false
+        unsorted: String? = nil, redacted: Bool = false, hidden: Bool = false
     ) {
+        self.unsorted = unsorted
         self.id = id
         self.sequenceNumber = sequenceNumber
         self.createdAt = createdAt
@@ -77,15 +93,17 @@ public struct Capture: Equatable, Sendable {
         self.hidden = hidden
     }
 
-    /// Mirrors the capture content dict in store.py::commit_capture.
+    /// Mirrors the capture content dict in store.py::commit_capture, with the
+    /// field set determined by `protocolVersion` — see
+    /// `Morningstar.contentIncludesUnsorted`.
     public static func hashContent(
         id: String, sequenceNumber: Int, createdAt: String, recordedAt: String?,
         timezone: String, observation: String, phenomenology: String, action: String,
         source: String?, recallLatency: String?, protocolVersion: String,
         schemaVersion: String, contextSnapshot: ContextSnapshot,
-        previousHash: String, committedAt: String
+        previousHash: String, committedAt: String, unsorted: String? = nil
     ) -> JSONValue {
-        .object([
+        var fields: [String: JSONValue] = [
             "id": .string(id),
             "sequence_number": .int(Int64(sequenceNumber)),
             "created_at": .string(createdAt),
@@ -101,7 +119,11 @@ public struct Capture: Equatable, Sendable {
             "context_snapshot": contextSnapshot.jsonValue,
             "previous_hash": .string(previousHash),
             "committed_at": .string(committedAt),
-        ])
+        ]
+        if Morningstar.contentIncludesUnsorted(protocolVersion: protocolVersion) {
+            fields["unsorted"] = unsorted.map { .string($0) } ?? .null
+        }
+        return .object(fields)
     }
 
     public var hashContent: JSONValue {
@@ -111,7 +133,7 @@ public struct Capture: Equatable, Sendable {
             phenomenology: phenomenology, action: action, source: source,
             recallLatency: recallLatency, protocolVersion: protocolVersion,
             schemaVersion: schemaVersion, contextSnapshot: contextSnapshot,
-            previousHash: previousHash, committedAt: committedAt)
+            previousHash: previousHash, committedAt: committedAt, unsorted: unsorted)
     }
 }
 

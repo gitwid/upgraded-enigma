@@ -243,11 +243,25 @@ public final class SQLiteStore {
     /// moment and later material becomes annotations. The caller supplies
     /// natural text only — ids, sequence numbers, hashes, timestamps, and
     /// versions are assigned here.
+    /// Commits a capture at event speed: one blurt of text, recorded as
+    /// `unsorted` rather than pushed into a channel it may not belong in.
+    ///
+    /// Nothing here asserts the capture is immediate — only that it came
+    /// through the fast path, which is the factual part. `recall_latency`
+    /// stays unstated rather than being filled in with a guess.
+    @discardableResult
+    public func commitQuickCapture(
+        _ text: String, captureSource: String = "quick"
+    ) throws -> Capture {
+        try commitCapture(unsorted: text, captureSource: captureSource)
+    }
+
     @discardableResult
     public func commitCapture(
         observation: String = "", phenomenology: String = "", action: String = "",
         recordedAt: String? = nil, source: String? = nil, recallLatency: String? = nil,
-        statedContext: [String: String] = [:], captureSource: String = "api"
+        statedContext: [String: String] = [:], captureSource: String = "api",
+        unsorted: String? = nil
     ) throws -> Capture {
         try connection.transaction {
             let last = try connection.queryOne(
@@ -272,7 +286,8 @@ public final class SQLiteStore {
                 observation: observation, phenomenology: phenomenology, action: action,
                 source: nilIfBlank(source), recallLatency: nilIfBlank(recallLatency),
                 protocolVersion: Morningstar.protocolVersion, schemaVersion: schemaVersion,
-                contextSnapshot: snapshot, previousHash: previousHash, committedAt: now)
+                contextSnapshot: snapshot, previousHash: previousHash, committedAt: now,
+                unsorted: nilIfBlank(unsorted))
             let digest = try integrityHash(content)
 
             try connection.execute(
@@ -280,8 +295,9 @@ public final class SQLiteStore {
                 INSERT INTO captures
                 (id, sequence_number, created_at, recorded_at, timezone, observation,
                  phenomenology, action, source, recall_latency, protocol_version,
-                 schema_version, context_snapshot, integrity_hash, previous_hash, committed_at)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                 schema_version, context_snapshot, integrity_hash, previous_hash,
+                 committed_at, unsorted)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
                 [.text(id), SQLValue(sequenceNumber), .text(now),
                  SQLValue(nilIfBlank(recordedAt)), .text(zone.identifier),
@@ -289,7 +305,8 @@ public final class SQLiteStore {
                  SQLValue(nilIfBlank(source)), SQLValue(nilIfBlank(recallLatency)),
                  .text(Morningstar.protocolVersion), .text(schemaVersion),
                  .text(try JCS.canonicalJSON(snapshot.jsonValue)),
-                 .text(digest), .text(previousHash), .text(now)])
+                 .text(digest), .text(previousHash), .text(now),
+                 SQLValue(nilIfBlank(unsorted))])
             try connection.execute(
                 "INSERT INTO capture_visibility (capture_id, hidden, updated_at) VALUES (?,0,?)",
                 [.text(id), .text(now)])
@@ -308,7 +325,7 @@ public final class SQLiteStore {
                 source: nilIfBlank(source), recallLatency: nilIfBlank(recallLatency),
                 protocolVersion: Morningstar.protocolVersion, schemaVersion: schemaVersion,
                 contextSnapshot: snapshot, previousHash: previousHash, committedAt: now,
-                integrityHash: digest)
+                integrityHash: digest, unsorted: nilIfBlank(unsorted))
         }
     }
 
@@ -373,7 +390,7 @@ public final class SQLiteStore {
                 """
                 UPDATE captures SET observation=?, phenomenology=?, action=?,
                     source=NULL, recall_latency=NULL, recorded_at=NULL,
-                    context_snapshot=?, redacted=1 WHERE id=?
+                    unsorted=NULL,                    context_snapshot=?, redacted=1 WHERE id=?
                 """,
                 [.text(redactedPlaceholder), .text(redactedPlaceholder),
                  .text(redactedPlaceholder),
@@ -431,6 +448,29 @@ public final class SQLiteStore {
                 id: id, captureID: captureID, createdAt: createdAt, type: kind, body: body,
                 protocolVersion: Morningstar.protocolVersion, integrityHash: digest)
         }
+    }
+
+    /// Records how the operator would separate an unsorted capture into the
+    /// three channels — as an annotation, never as an edit.
+    ///
+    /// Deciding after the fact which part of a blurt was observation and which
+    /// was already interpretation is later knowledge *about* the evidence. It
+    /// is kept beside the original, which stays exactly as it was taken down.
+    @discardableResult
+    public func sortLater(
+        captureID: String, observation: String = "",
+        phenomenology: String = "", action: String = ""
+    ) throws -> Annotation {
+        let capture = try capture(id: captureID)
+        guard capture.unsorted != nil else {
+            throw StoreError.invalidStatus("capture \(captureID) has no unsorted text to sort")
+        }
+        let body = try JCS.canonicalJSON(.object([
+            "sorted_observation": .string(observation),
+            "sorted_phenomenology": .string(phenomenology),
+            "sorted_action": .string(action),
+        ]))
+        return try annotate(captureID: captureID, type: "context", body: body)
     }
 
     public func annotations(for captureID: String) throws -> [Annotation] {
@@ -742,6 +782,7 @@ public final class SQLiteStore {
             contextSnapshot: snapshot, previousHash: row.string("previous_hash") ?? "",
             committedAt: row.string("committed_at") ?? "",
             integrityHash: row.string("integrity_hash") ?? "",
+            unsorted: row.string("unsorted"),
             redacted: row.bool("redacted"), hidden: hiddenRow?.bool("hidden") ?? false)
     }
 

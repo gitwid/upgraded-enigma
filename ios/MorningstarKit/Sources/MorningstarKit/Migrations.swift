@@ -243,4 +243,50 @@ let migration0002 = Migration(
             """)
 )
 
-public let migrations: [Migration] = [migration0001, migration0002]
+let migration0003 = Migration(
+    id: 3,
+    schemaVersion: "0.3",
+    description: """
+        Adds the `unsorted` capture channel, for text recorded at event speed \
+        that has not been separated into observation, phenomenology, and action.
+        """,
+    migrationNotes: """
+        Additive only. Existing captures keep NULL and are unaffected: the \
+        column joins hashed content only from protocol 0.3, and every object's \
+        content is rebuilt from its own recorded version, so captures written \
+        under 0.2 keep verifying against their original hashes. Nothing is \
+        recomputed.
+        """,
+    compatibilityNotes: """
+        A 0.2 reader encountering a 0.3 capture will not see the unsorted text \
+        and will compute a different hash for it; it should verify objects only \
+        up to the protocol version it implements rather than reporting them \
+        as tampered.
+        """,
+    statements: [
+        "ALTER TABLE captures ADD COLUMN unsorted TEXT",
+    ],
+    protocolRecord: ProtocolRecord(
+        version: "0.3",
+        changeDescription: """
+            Captures may record an `unsorted` channel: one piece of text taken \
+            down at event speed, explicitly not yet separated into layers. The \
+            protocol has always recorded recall latency as an admission that \
+            memory degrades between an event and the writing of it; this makes \
+            the fast path a first-class capture instead of leaving speed and \
+            structure in conflict.
+            """,
+        migrationNotes: """
+            `unsorted` enters hashed capture content at 0.3. Content for \
+            earlier objects is built without it, so their hashes are unchanged \
+            and still verify.
+            """,
+        compatibilityNotes: """
+            Sorting an unsorted capture later never edits it: the separation is \
+            recorded as an annotation, because deciding what was observation \
+            and what was interpretation is later knowledge about the evidence, \
+            not the evidence.
+            """)
+)
+
+public let migrations: [Migration] = [migration0001, migration0002, migration0003]

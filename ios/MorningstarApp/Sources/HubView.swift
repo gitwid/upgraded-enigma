@@ -10,6 +10,7 @@ struct HubView: View {
     @State private var journeyStart: Stage?
     @State private var showArchive = false
     @State private var showAudit = false
+    @State private var showQuick = false
 
     var body: some View {
         ZStack {
@@ -43,6 +44,7 @@ struct HubView: View {
                 Spacer().frame(height: 8)
 
                 HStack(spacing: 28) {
+                    Button("Record") { showQuick = true }
                     Button("Archive") { showArchive = true }
                     Button("Audit") { showAudit = true }
                 }
@@ -60,6 +62,9 @@ struct HubView: View {
         }
         .sheet(isPresented: $showAudit) {
             AuditView().environment(model)
+        }
+        .sheet(isPresented: $showQuick) {
+            QuickCaptureView().environment(model)
         }
     }
 }

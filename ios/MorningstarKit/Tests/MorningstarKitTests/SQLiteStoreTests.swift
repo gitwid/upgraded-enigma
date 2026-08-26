@@ -40,15 +40,15 @@ final class SQLiteStoreTests: XCTestCase {
 
     // MARK: - versions
 
-    func testFreshStoreRegistersBothVersions() throws {
+    func testFreshStoreRegistersEveryVersion() throws {
         XCTAssertEqual(try store.protocolVersions().compactMap { $0.string("version") },
-                       ["0.1", "0.2"])
+                       ["0.1", "0.2", "0.3"])
         XCTAssertEqual(try store.schemaVersions().compactMap { $0.string("schema_version") },
-                       ["0.1", "0.2"])
-        XCTAssertEqual(store.schemaVersion, "0.2")
+                       ["0.1", "0.2", "0.3"])
+        XCTAssertEqual(store.schemaVersion, "0.3")
         let types = try store.events().compactMap { $0.string("event_type") }
-        XCTAssertEqual(types.filter { $0 == "protocol_version_registered" }.count, 2)
-        XCTAssertEqual(types.filter { $0 == "schema_migrated" }.count, 2)
+        XCTAssertEqual(types.filter { $0 == "protocol_version_registered" }.count, migrations.count)
+        XCTAssertEqual(types.filter { $0 == "schema_migrated" }.count, migrations.count)
         XCTAssertTrue(try store.verifyIntegrity().ok)
     }
 
@@ -153,40 +153,40 @@ final class SQLiteStoreTests: XCTestCase {
     // 5. Schema changes require a new version record.
     // 12. Historical captures remain readable after a schema migration.
     func testSchemaChangeRequiresNewVersionRecordAndHistoryStaysReadable() throws {
-        let old = try commit("written under schema 0.2")
+        let old = try commit("written under schema 0.3")
 
         XCTAssertThrowsError(try store.apply(Migration(
-            id: 3, schemaVersion: "0.2",  // reuses a registered version
+            id: 4, schemaVersion: "0.3",  // reuses a registered version
             description: "sneaky mutation", migrationNotes: "", compatibilityNotes: "",
             statements: ["ALTER TABLE captures ADD COLUMN sneaky TEXT"]))) { error in
-            XCTAssertEqual(error as? SchemaVersionError, .versionAlreadyRegistered("0.2"))
+            XCTAssertEqual(error as? SchemaVersionError, .versionAlreadyRegistered("0.3"))
         }
         XCTAssertThrowsError(try store.apply(Migration(
             id: 7, schemaVersion: "0.7", description: "skips ahead",
             migrationNotes: "", compatibilityNotes: "", statements: []))) { error in
-            XCTAssertEqual(error as? SchemaVersionError, .notSequential(expected: 3, got: 7))
+            XCTAssertEqual(error as? SchemaVersionError, .notSequential(expected: 4, got: 7))
         }
 
         try store.apply(Migration(
-            id: 3, schemaVersion: "0.2.1", description: "adds an optional column",
+            id: 4, schemaVersion: "0.3.1", description: "adds an optional column",
             migrationNotes: "additive; old rows keep NULL",
-            compatibilityNotes: "captures recorded under 0.2 stay valid",
+            compatibilityNotes: "captures recorded under 0.3 stay valid",
             statements: ["ALTER TABLE captures ADD COLUMN mood TEXT"]))
-        XCTAssertEqual(store.schemaVersion, "0.2.1")
+        XCTAssertEqual(store.schemaVersion, "0.3.1")
         XCTAssertEqual(try store.schemaVersions().compactMap { $0.string("schema_version") },
-                       ["0.1", "0.2", "0.2.1"])
+                       ["0.1", "0.2", "0.3", "0.3.1"])
         XCTAssertTrue(try store.events().contains {
             $0.string("event_type") == "schema_migrated"
-                && $0.string("payload")?.contains("0.2.1") == true
+                && $0.string("payload")?.contains("0.3.1") == true
         })
 
         // The old capture is still readable under its original version...
         let readback = try store.capture(id: old.id)
-        XCTAssertEqual(readback.observation, "written under schema 0.2")
-        XCTAssertEqual(readback.schemaVersion, "0.2")
+        XCTAssertEqual(readback.observation, "written under schema 0.3")
+        XCTAssertEqual(readback.schemaVersion, "0.3")
         // ...and new captures record the new one.
-        let new = try commit("written under schema 0.2.1")
-        XCTAssertEqual(new.schemaVersion, "0.2.1")
+        let new = try commit("written under schema 0.3.1")
+        XCTAssertEqual(new.schemaVersion, "0.3.1")
         let report = try store.verifyIntegrity()
         XCTAssertTrue(report.ok, "\(report.errors)")
     }

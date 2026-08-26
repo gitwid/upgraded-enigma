@@ -5,6 +5,15 @@ import MorningstarKit
 /// Owns the single local store and the transient capture-draft state.
 /// The store lives in Application Support (local-first; no cloud, no
 /// network). Draft text lives only here until Play commits it.
+/// One place that knows where the store lives, shared by the app and by the
+/// App Intent, which may run while the app is not in memory.
+enum AppPaths {
+    static var storeDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Morningstar", isDirectory: true)
+    }
+}
+
 @Observable
 final class AppModel {
     let store: SQLiteStore
@@ -30,13 +39,18 @@ final class AppModel {
     private var lastCapture: (sequenceNumber: Int, committedAt: String)?
 
     init() {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory,
-                                            in: .userDomainMask)[0]
-            .appendingPathComponent("Morningstar", isDirectory: true)
         // A store that cannot be opened leaves nothing to record into; the
         // instrument has no meaningful degraded mode.
-        store = try! SQLiteStore(directory: base)
+        store = try! SQLiteStore(directory: AppPaths.storeDirectory)
         refresh()
+    }
+
+    /// Records a blurt at event speed — see `CommitQuickCaptureIntent`.
+    @discardableResult
+    func commitQuick(_ text: String) throws -> Capture {
+        let capture = try store.commitQuickCapture(text, captureSource: "quick-app")
+        refresh()
+        return capture
     }
 
     func refresh() {
