@@ -241,12 +241,13 @@
 
 <div class="wrap">
   <header class="masthead">
-    <p class="eyebrow">Morningstar · iOS · protocol 0.2</p>
+    <p class="eyebrow">Morningstar · iOS · protocol 0.3</p>
     <h1>The instrument, on a bench</h1>
     <p class="lede">A working stand-in for the native app — the real screens, copy, and glyphs, driven by
       <strong>the actual canonicalization and hashing</strong> ported to JavaScript. Captures you commit here are
       hashed and chained for real, and the audit genuinely re-verifies. It is not the running app:
       SwiftUI needs Xcode. Everything else here is true.</p>
+    <p class="lede" style="margin-top:10px">New in protocol 0.3: <strong>Record</strong> — capture at event speed, unsorted on purpose.</p>
   </header>
 
   <div class="layout">
@@ -287,6 +288,20 @@
           <strong>golden vectors</strong> through its canonicalizer and SHA-256, and compares byte-for-byte.
           These fixtures are the same ones gating CI.</p>
         <div class="selfcheck" id="selfcheck"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Protocol 0.3 — capture at event speed</h2>
+        <p>The protocol has always recorded <em>recall latency</em>: an admission that memory decays
+          between an event and the writing of it. The four-stage journey widens that gap. <strong>Record</strong>
+          closes it — one blurt, stored in an <code>unsorted</code> channel rather than filed into a
+          layer it may not belong in. Sorting it later is an <em>annotation</em>, never an edit.</p>
+        <p>Adding a field to hashed content is exactly the change that silently invalidates history.
+          It doesn't here, because content is rebuilt from each capture's <strong>own</strong> recorded
+          version. Seed a capture written the way the previous release wrote them and watch it keep
+          verifying beside 0.3 ones:</p>
+        <button class="danger" id="seed" style="border-color:var(--pass);color:var(--pass)">Add a protocol 0.2 capture</button>
+        <div class="selfcheck" id="eras" style="margin-top:12px"></div>
       </section>
 
       <section class="panel">
@@ -461,61 +476,98 @@ const STAGES = [
 ];
 const S = {
   view:"hub", stage:0,
-  draft:{ observation:"", phenomenology:"", action:"", wander:"" },
+  draft:{ observation:"", phenomenology:"", action:"", wander:"" }, quickText:"", justQuick:null,
   captures:[], events:[], lastHash:GENESIS, committedAt:null, tampered:false
 };
 const el = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const shortHash = h => h.slice(0,10) + "…" + h.slice(-6);
 
-function commitCapture(){
-  const seq = S.captures.length + 1;
-  const now = new Date().toISOString().replace(/Z$/, "Z");
+/* Protocol 0.3 added the `unsorted` channel. It joins hashed content from
+   0.3 onward and must be absent before it, so content is always rebuilt from
+   the capture's OWN recorded version — otherwise the bump would invalidate
+   every capture written earlier. Same rule as Morningstar.contentIncludesUnsorted. */
+const includesUnsorted = v => v >= "0.3";
+
+function captureContent(f){
   const content = {
-    id: "c" + seq + "-" + Math.random().toString(16).slice(2,10),
-    sequence_number: seq,
-    created_at: now,
-    recorded_at: null,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-    observation: S.draft.observation,
-    phenomenology: S.draft.phenomenology,
-    action: S.draft.action,
-    source: null,
-    recall_latency: null,
-    protocol_version: "0.2",
-    schema_version: "0.2",
-    context_snapshot: {
-      automatic: {
-        captured_at_utc: now,
-        capture_source: "preview",
-        app_version: "0.2.0",
-        elapsed_since_previous_capture_seconds:
-          S.committedAt ? Math.round((Date.now() - S.committedAt) / 1000) : null
-      },
-      stated: {}
-    },
-    previous_hash: S.lastHash,
-    committed_at: now
+    id: f.id, sequence_number: f.sequence_number, created_at: f.created_at,
+    recorded_at: null, timezone: f.timezone,
+    observation: f.observation, phenomenology: f.phenomenology, action: f.action,
+    source: null, recall_latency: null,
+    protocol_version: f.protocol_version, schema_version: f.schema_version,
+    context_snapshot: f.context_snapshot,
+    previous_hash: f.previous_hash, committed_at: f.committed_at
   };
+  if (includesUnsorted(f.protocol_version)) content.unsorted = f.unsorted ?? null;
+  return content;
+}
+
+function commitFields({ observation="", phenomenology="", action="", unsorted=null,
+                        protocolVersion="0.3", captureSource="preview" }){
+  const seq = S.captures.length + 1;
+  const now = new Date().toISOString();
+  return {
+    id: "c" + seq + "-" + Math.random().toString(16).slice(2,10),
+    sequence_number: seq, created_at: now, timezone:
+      Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+    observation, phenomenology, action, unsorted,
+    protocol_version: protocolVersion, schema_version: protocolVersion,
+    context_snapshot: { automatic: {
+      captured_at_utc: now, capture_source: captureSource, app_version: "0.3.0",
+      elapsed_since_previous_capture_seconds:
+        S.committedAt ? Math.round((Date.now() - S.committedAt)/1000) : null
+    }, stated: {} },
+    previous_hash: S.lastHash, committed_at: now
+  };
+}
+
+function store(fields){
+  const content = captureContent(fields);
   const hash = integrityHash(content);
-  const capture = { content, hash, hidden:false, canonical: canonical(content) };
+  const capture = { fields, content, hash, hidden:false, canonical: canonical(content) };
   S.captures.push(capture);
-  S.events.push({ type:"capture_committed", hash, previous:S.lastHash, seq });
+  S.events.push({ type:"capture_committed", hash, previous:S.lastHash, seq:fields.sequence_number });
   S.lastHash = hash;
   S.committedAt = Date.now();
-  S.draft = { observation:"", phenomenology:"", action:"", wander:"" };
   renderBench();
+  renderEras();
   return capture;
+}
+
+function commitCapture(){
+  const capture = store(commitFields({
+    observation: S.draft.observation, phenomenology: S.draft.phenomenology,
+    action: S.draft.action
+  }));
+  S.draft = { observation:"", phenomenology:"", action:"", wander:"" };
+  return capture;
+}
+
+/* The fast path: one blurt, recorded unsorted rather than filed into a
+   channel it may not belong in. No leakage check — there is no review step
+   at event speed, and nothing may stand between a person and the record. */
+function commitQuick(text){
+  return store(commitFields({ unsorted: text, captureSource: "quick" }));
+}
+
+/* Writes a capture the way the previous release would have: protocol 0.2,
+   hashed over a field set with no `unsorted` in it. */
+function seedLegacyCapture(){
+  return store(commitFields({
+    observation: "written under protocol 0.2, before the bump",
+    protocolVersion: "0.2", captureSource: "preview-legacy"
+  }));
 }
 
 function verify(){
   const errors=[], warnings=[];
   let previous = GENESIS;
   for (const c of S.captures) {
-    const label = "capture " + String(c.content.sequence_number).padStart(3,"0");
-    if (c.content.previous_hash !== previous) errors.push(label + ": previous-hash break in the chain");
+    const label = "capture " + String(c.fields.sequence_number).padStart(3,"0");
+    if (c.fields.previous_hash !== previous) errors.push(label + ": previous-hash break in the chain");
     previous = c.hash;
-    if (integrityHash(c.content) !== c.hash)
+    if (integrityHash(captureContent(c.fields)) !== c.hash)
       errors.push(label + ": stored hash does not match content (possible retrospective edit)");
     if (c.hidden) warnings.push(label + ": hidden from normal view (evidence retained)");
   }
@@ -525,7 +577,7 @@ function verify(){
 /* ---------- app rendering ---------- */
 function render(){
   const scr = el("screen");
-  scr.innerHTML = ({ hub:viewHub, journey:viewJourney, archive:viewArchive, audit:viewAudit })[S.view]();
+  scr.innerHTML = ({ hub:viewHub, journey:viewJourney, archive:viewArchive, audit:viewAudit, quick:viewQuick })[S.view]();
   wire();
   scr.scrollTop = 0;
 }
@@ -557,6 +609,7 @@ function viewHub(){
       <div><span class="glyph">⊟</span> Committed captures are never edited</div>
     </div>
     <div class="linkrow">
+      <button class="linkbtn" data-view="quick">Record</button>
       <button class="linkbtn" data-view="archive">Archive${S.captures.length?" ("+S.captures.length+")":""}</button>
       <button class="linkbtn" data-view="audit">Audit</button>
     </div>
@@ -631,7 +684,7 @@ function stagePlay(){
     const c = S.justCommitted;
     return `<div class="breath">
       <div class="glyph" style="font-size:58px">☯</div>
-      <h2 class="app-h2">Capture ${String(c.content.sequence_number).padStart(3,"0")} committed.</h2>
+      <h2 class="app-h2">Capture ${String(c.fields.sequence_number).padStart(3,"0")} committed.</h2>
       <p class="app-note" style="max-width:32ch">It is part of the record now. Anything you add later will be an annotation.</p>
       <div class="bytes" style="font-size:10px;width:100%;text-align:left;background:rgba(255,255,255,.5);border-color:var(--app-rule);color:var(--app-ink)">integrity ${shortHash(c.hash)}</div>
       <div style="width:100%"><button class="primary" data-view="hub">Done</button></div>
@@ -646,16 +699,46 @@ function stagePlay(){
   </div>`;
 }
 
+function viewQuick(){
+  if (S.justQuick) {
+    const c = S.justQuick;
+    return `<div class="breath">
+      <div class="glyph" style="font-size:56px">☯</div>
+      <h2 class="app-h2">Capture ${String(c.fields.sequence_number).padStart(3,"0")} committed.</h2>
+      <p class="app-note" style="max-width:32ch">Recorded as written, unsorted. You can separate it
+        into observation, experience, and action later — that gets added alongside, and this stays
+        as you took it down.</p>
+      <div style="width:100%"><button class="primary" data-view="hub">Done</button></div>
+    </div>`;
+  }
+  return `<div class="pad">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button class="home glyph" data-view="hub" style="font-size:22px">☯</button>
+      <h2 class="app-h2" style="margin:0">Record</h2>
+    </div>
+    <h3 style="font-family:var(--serif);font-size:17px;margin:0 0 4px">Say what happened. Don't sort it.</h3>
+    <p class="app-note" style="margin-bottom:10px">However it comes out is fine. Nothing here is
+      checked, corrected, or counted.</p>
+    <textarea id="quicktext" rows="6" placeholder="…">${esc(S.quickText)}</textarea>
+    <p class="app-note" style="margin:8px 0 14px">On a phone this is where you'd hold the keyboard's
+      microphone. Dictation runs on-device; no speech leaves the phone.</p>
+    <button class="primary" id="quickcommit">Record</button>
+  </div>`;
+}
+
 function viewArchive(){
   const rows = S.captures.length ? S.captures.slice().reverse().map(c=>{
-    const first = [c.content.observation,c.content.phenomenology,c.content.action].find(x=>x) || "(empty)";
+    const first = c.fields.unsorted
+      || [c.fields.observation,c.fields.phenomenology,c.fields.action].find(x=>x) || "(empty)";
     return `<div class="rowitem">
       <div class="body">
-        <div class="seq">Capture ${String(c.content.sequence_number).padStart(3,"0")}
-          ${c.hidden?'<span class="badge">hidden</span>':""}</div>
+        <div class="seq">Capture ${String(c.fields.sequence_number).padStart(3,"0")}
+          ${c.hidden?'<span class="badge">hidden</span>':""}
+          ${c.fields.unsorted?'<span class="badge">unsorted</span>':""}
+          ${c.fields.protocol_version!=="0.3"?'<span class="badge">v'+c.fields.protocol_version+'</span>':""}</div>
         <div class="snip">${esc(first.split("\n")[0])}</div>
       </div>
-      <button class="ghost" data-hide="${c.content.sequence_number}">${c.hidden?"Unhide":"Hide"}</button>
+      <button class="ghost" data-hide="${c.fields.sequence_number}">${c.hidden?"Unhide":"Hide"}</button>
     </div>`;
   }).join("") : `<p class="app-note">Nothing committed yet.</p>`;
   return `<div class="pad">
@@ -684,7 +767,7 @@ function viewAudit(){
     <div style="margin-top:14px">
       <div class="rowitem"><div class="body"><span class="seq">captures</span></div><span>${S.captures.length}</span></div>
       <div class="rowitem"><div class="body"><span class="seq">events</span></div><span>${S.events.length}</span></div>
-      <div class="rowitem"><div class="body"><span class="seq">protocol</span></div><span>0.2 (RFC 8785)</span></div>
+      <div class="rowitem"><div class="body"><span class="seq">protocol</span></div><span>0.3 (RFC 8785)</span></div>
     </div>
     <p class="app-note" style="margin-top:14px">Hashes provide tamper evidence for this local store — not a
       cryptographic guarantee against someone with full access to the device.</p>
@@ -697,7 +780,7 @@ function wire(){
     S.stage=+b.dataset.stage; S.view="journey"; S.justCommitted=null; render();
   });
   scr.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{
-    S.view=b.dataset.view; if(S.view==="hub") S.justCommitted=null; render();
+    S.view=b.dataset.view; if(S.view==="hub"){ S.justCommitted=null; S.justQuick=null; } render();
   });
   scr.querySelectorAll("[data-next]").forEach(b=>b.onclick=()=>{
     if (S.stage < STAGES.length-1) { S.stage++; render(); }
@@ -705,10 +788,20 @@ function wire(){
   scr.querySelectorAll("[data-draft]").forEach(t=>t.oninput=()=>{ S.draft[t.dataset.draft]=t.value; });
   const refresh = el("refresh");
   if (refresh) refresh.onclick=()=>{ S.draft.wander=""; render(); };
+  const quicktext = el("quicktext");
+  if (quicktext) quicktext.oninput = () => { S.quickText = quicktext.value; };
+  const quickcommit = el("quickcommit");
+  if (quickcommit) quickcommit.onclick = () => {
+    const text = S.quickText.trim();
+    if (!text) return;
+    S.justQuick = commitQuick(text);
+    S.quickText = "";
+    render();
+  };
   const commit = el("commit");
   if (commit) commit.onclick=()=>{ S.justCommitted = commitCapture(); render(); };
   scr.querySelectorAll("[data-hide]").forEach(b=>b.onclick=()=>{
-    const c = S.captures.find(x=>x.content.sequence_number===+b.dataset.hide);
+    const c = S.captures.find(x=>x.fields.sequence_number===+b.dataset.hide);
     c.hidden=!c.hidden; render();
   });
 }
@@ -726,11 +819,11 @@ function renderBench(){
   } else {
     let previous = GENESIS;
     chain.innerHTML = S.captures.map(c=>{
-      const linked = c.content.previous_hash === previous;
+      const linked = c.fields.previous_hash === previous;
       const intact = integrityHash(c.content) === c.hash;
       previous = c.hash;
       return `<div class="link">
-        <span class="lbl">${String(c.content.sequence_number).padStart(3,"0")}</span>
+        <span class="lbl">${String(c.fields.sequence_number).padStart(3,"0")}</span>
         <span class="h">${esc(shortHash(c.hash))}
           <span class="${linked&&intact?"ok-mark":"bad-mark"}">${linked&&intact?"✓ verifies":"✕ broken"}</span></span>
       </div>`;
@@ -755,14 +848,19 @@ el("tamper").onclick = () => {
     return;
   }
   const target = S.captures[S.captures.length-1];
-  target.content.observation = "it never happened";
-  target.canonical = canonical(target.content);
+  if (target.fields.unsorted !== null && target.fields.unsorted !== undefined) {
+    target.fields.unsorted = "it never happened";
+  } else {
+    target.fields.observation = "it never happened";
+  }
+  target.canonical = canonical(captureContent(target.fields));
   S.tampered = true;
   el("tamper-note").innerHTML = "Rewrote capture " +
-    String(target.content.sequence_number).padStart(3,"0") +
+    String(target.fields.sequence_number).padStart(3,"0") +
     " directly in storage, leaving its stored hash untouched — exactly what an edit-in-place would do. " +
     "<strong>Open Audit in the app.</strong>";
   renderBench();
+  renderEras();
   if (S.view === "audit") render();
 };
 
@@ -773,13 +871,33 @@ function applyHash(){
   if (!want) return false;
   const stage = STAGES.findIndex(s => s.key === want);
   if (stage >= 0) { S.stage = stage; S.view = "journey"; return true; }
-  if (["hub","archive","audit"].includes(want)) { S.view = want; return true; }
+  if (["hub","archive","audit","quick"].includes(want)) { S.view = want; return true; }
   return false;
 }
 window.addEventListener("hashchange", () => { if (applyHash()) render(); });
 
+function renderEras(){
+  const box = el("eras");
+  if (!S.captures.length) {
+    box.innerHTML = `<p style="margin:0;font-size:13px;color:var(--muted)">No captures yet.</p>`;
+    return;
+  }
+  box.innerHTML = S.captures.map(c => {
+    const ok = integrityHash(captureContent(c.fields)) === c.hash;
+    const hasUnsorted = "unsorted" in captureContent(c.fields);
+    return `<div class="vec">
+      <span class="st ${ok?"ok-mark":"bad-mark"}">${ok?"VERIFIES":"BROKEN"}</span>
+      <span><span class="nm">capture ${String(c.fields.sequence_number).padStart(3,"0")} · protocol ${esc(c.fields.protocol_version)}</span><br>
+      <span class="dt">hashed over ${hasUnsorted?"a field set including <code>unsorted</code>":"a field set with no <code>unsorted</code> in it"}</span></span>
+    </div>`;
+  }).join("");
+}
+
+el("seed").onclick = () => { seedLegacyCapture(); if (S.view!=="hub") render(); };
+
 renderSelfCheck();
 renderBench();
+renderEras();
 applyHash();
 render();
 </script>
