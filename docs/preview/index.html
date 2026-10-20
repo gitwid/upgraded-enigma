@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morningstar — interactive preview</title>
+<meta name="description" content="An interactive stand-in for the Morningstar iOS app: real screens and copy, driven by the actual RFC 8785 canonicalization and SHA-256 hashing.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>&#9733;</text></svg>">
+</head>
+<body>
+<style>
+  /* ---- page chrome: cool bench. Full light palette on bare :root. ---- */
+  :root {
+    --bench:#E8EBF0; --panel:#F8FAFC; --panel-2:#EEF2F7;
+    --ink:#1A2330; --muted:#57657A; --rule:#CBD4E1;
+    --pass:#1F6F4F; --warn:#8A6111; --fail:#A32B22;
+    --pass-bg:#DCEFE5; --warn-bg:#F6ECD4; --fail-bg:#F7DFDC;
+    --shadow:0 22px 50px -18px rgba(16,26,40,.35);
+    /* app screen: constant in both themes (the real app is light-only) */
+    --paper:#EEE5D0; --app-ink:#212121; --wave:#0067C7; --wave-soft:#C0F6F6;
+    --app-rule:rgba(33,33,33,.14); --app-muted:rgba(33,33,33,.58);
+    --field:rgba(255,255,255,.66);
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,"Cascadia Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark) {
+    :root:not([data-theme="light"]) {
+      --bench:#0E141C; --panel:#161E29; --panel-2:#1D2632;
+      --ink:#E4EAF2; --muted:#8FA0B4; --rule:#28323F;
+      --pass:#6ED3A5; --warn:#E5BE72; --fail:#F2938A;
+      --pass-bg:#12291F; --warn-bg:#2A2314; --fail-bg:#2C1917;
+      --shadow:0 22px 55px -20px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bench:#0E141C; --panel:#161E29; --panel-2:#1D2632;
+    --ink:#E4EAF2; --muted:#8FA0B4; --rule:#28323F;
+    --pass:#6ED3A5; --warn:#E5BE72; --fail:#F2938A;
+    --pass-bg:#12291F; --warn-bg:#2A2314; --fail-bg:#2C1917;
+    --shadow:0 22px 55px -20px rgba(0,0,0,.8);
+  }
+
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--bench); color:var(--ink);
+    font-family:var(--ui); line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:1180px; margin:0 auto; padding:26px 16px 48px; }
+
+  header.masthead { margin-bottom:28px; }
+  .eyebrow {
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--muted); margin:0 0 8px;
+  }
+  h1 { font-family:var(--serif); font-size:clamp(28px,4vw,42px); margin:0 0 10px; text-wrap:balance; font-weight:600; }
+  .lede { max-width:62ch; color:var(--muted); margin:0; font-size:15.5px; }
+  .lede strong { color:var(--ink); font-weight:600; }
+
+  .layout { display:grid; grid-template-columns:minmax(320px,428px) 1fr; gap:34px; align-items:start; margin-top:30px; }
+  /* grid items default to min-width:auto and refuse to shrink below the
+     device's intrinsic width; without this the page scrolls sideways on a phone */
+  .layout > * { min-width:0; }
+  @media (max-width:900px) { .layout { grid-template-columns:1fr; } .stage-col { position:static !important; } }
+  @media (max-width:430px) {
+    .wrap { padding-left:12px; padding-right:12px; }
+    .portal { gap:6px; padding:14px 10px; }
+    .portal .g { font-size:34px; }
+  }
+
+  .stage-col { position:sticky; top:24px; }
+
+  /* ---- device ---- */
+  /* iPhone 17 Pro: 402 x 874 pt (2622 x 1206 @3x). Width drives the frame and
+     aspect-ratio derives the height, so the proportions survive any column
+     width instead of being pinned to one pixel height. */
+  .device {
+    width:min(428px,100%);
+    background:#0B0E12; border-radius:66px; padding:12px;
+    box-shadow:var(--shadow); border:1px solid rgba(255,255,255,.08);
+  }
+  .screen {
+    background:var(--paper); color:var(--app-ink);
+    border-radius:54px; width:100%; aspect-ratio:402/874; overflow:hidden;
+    display:flex; flex-direction:column; position:relative;
+  }
+  /* Dynamic Island, not a notch: ~125 x 36 pt, inset from the top edge. */
+  .island {
+    position:absolute; top:2.6%; left:50%; transform:translateX(-50%);
+    width:31.1%; aspect-ratio:125/36; background:#000; border-radius:999px; z-index:5;
+  }
+  /* clear the island, as the real app's safe area does */
+  .screen-scroll { flex:1; overflow-y:auto; overscroll-behavior:contain; padding-top:12%; }
+  .pad { padding:20px; }
+
+  /* app typography */
+  .app-title { font-family:var(--serif); font-size:29px; font-weight:600; margin:0; }
+  .app-h2 { font-family:var(--serif); font-size:19px; font-weight:600; margin:0 0 4px; }
+  .app-note { font-size:12.5px; color:var(--app-muted); margin:0; }
+  .glyph { font-family:"Apple Symbols","Segoe UI Symbol","Noto Sans Symbols2",serif; line-height:1; }
+
+  /* hub */
+  .hub { display:flex; flex-direction:column; align-items:center; gap:20px; padding:26px 22px 24px; text-align:center; min-height:100%; }
+  .portal {
+    display:flex; flex-wrap:wrap; justify-content:center; max-width:100%;
+    gap:12px; padding:16px 14px; border-radius:18px;
+    background:rgba(255,255,255,.5); border:1px solid var(--app-rule);
+    backdrop-filter:blur(8px);
+  }
+  .portal button {
+    background:none; border:0; cursor:pointer; padding:6px 8px; border-radius:12px;
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    color:var(--app-ink); font-family:var(--ui); transition:transform .12s ease, background .12s ease;
+  }
+  .portal button:hover { background:rgba(255,255,255,.6); }
+  .portal button:active { transform:scale(.9); }
+  .portal .g { font-size:40px; }
+  .portal .n { font-size:10.5px; color:var(--app-muted); letter-spacing:.02em; }
+  .portal .r { font-size:9px; color:var(--app-muted); opacity:.75; font-family:var(--mono); text-transform:uppercase; letter-spacing:.08em; }
+
+  .facts {
+    display:flex; flex-direction:column; gap:7px; align-items:flex-start;
+    font-size:12px; color:var(--app-muted); padding:14px 16px;
+    border-top:1px solid var(--app-rule); border-bottom:1px solid var(--app-rule);
+    width:100%; text-align:left;
+  }
+  .facts .glyph { display:inline-block; width:16px; opacity:.7; }
+  .linkrow { display:flex; gap:22px; justify-content:center; }
+  .linkbtn { background:none; border:0; color:var(--wave); font-size:14px; cursor:pointer; font-family:var(--ui); padding:4px; border-radius:6px; }
+  .linkbtn:hover { text-decoration:underline; }
+
+  /* journey header */
+  .jhead { display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--app-rule); }
+  .jhead .home { background:none; border:0; font-size:26px; cursor:pointer; color:var(--app-ink); padding:2px 4px; border-radius:8px; }
+  .dots { display:flex; gap:7px; margin:0 auto; }
+  .dot { width:7px; height:7px; border-radius:50%; background:rgba(33,33,33,.22); }
+  .dot.on { background:var(--wave); }
+  .jname { font-size:13px; color:var(--app-muted); }
+
+  /* breath */
+  .breath { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; text-align:center; padding:44px 26px; min-height:520px; }
+  .pulse {
+    width:120px; height:120px; border-radius:50%; background:var(--wave-soft);
+    border:2px solid rgba(0,103,199,.35); animation:breathe 8s ease-in-out infinite;
+  }
+  @keyframes breathe { 0%,100%{transform:scale(.82);} 50%{transform:scale(1.18);} }
+  @media (prefers-reduced-motion:reduce) { .pulse { animation:none; } }
+
+  /* fields */
+  .field { margin-bottom:16px; }
+  .field label { display:block; font-family:var(--serif); font-size:16px; font-weight:600; margin-bottom:2px; }
+  .field .hint { font-size:11.5px; color:var(--app-muted); margin-bottom:6px; display:block; }
+  textarea, input[type=text] {
+    width:100%; font-family:var(--ui); font-size:14px; color:var(--app-ink);
+    background:var(--field); border:1px solid var(--app-rule); border-radius:10px;
+    padding:9px 10px; resize:vertical;
+  }
+  textarea:focus, input:focus { outline:2px solid var(--wave); outline-offset:1px; }
+  .wander { background:rgba(255,255,255,.4); border:1px dashed var(--app-rule); border-radius:12px; padding:12px; }
+
+  .primary {
+    width:100%; background:var(--wave); color:#fff; border:0; border-radius:12px;
+    padding:13px; font-size:15px; font-weight:600; cursor:pointer; font-family:var(--ui);
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .primary:hover { filter:brightness(1.08); }
+  .ghost { background:none; border:1px solid var(--app-rule); border-radius:10px; padding:8px 12px; font-size:13px; cursor:pointer; color:var(--app-ink); font-family:var(--ui); }
+
+  /* review + chips */
+  .review-block { margin-bottom:14px; }
+  .review-block h4 { font-size:13px; margin:0 0 2px; }
+  .review-block p { margin:0; font-size:14px; white-space:pre-wrap; }
+  .empty { color:var(--app-muted); font-style:italic; }
+  .chip {
+    background:rgba(217,164,42,.16); border:1px solid rgba(217,164,42,.4);
+    border-radius:9px; padding:9px 11px; margin-bottom:8px;
+  }
+  .chip .m { font-size:13px; font-weight:600; }
+  .chip .why { font-size:11.5px; color:var(--app-muted); margin-top:2px; }
+
+  /* list rows */
+  .rowitem { padding:12px 0; border-bottom:1px solid var(--app-rule); display:flex; gap:10px; align-items:flex-start; }
+  .rowitem:last-child { border-bottom:0; }
+  .rowitem .body { flex:1; min-width:0; }
+  .rowitem .seq { font-family:var(--mono); font-size:12px; font-weight:600; }
+  .rowitem .snip { font-size:12.5px; color:var(--app-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .badge { font-family:var(--mono); font-size:9px; text-transform:uppercase; letter-spacing:.07em; padding:2px 6px; border-radius:5px; background:rgba(33,33,33,.1); color:var(--app-muted); }
+
+  .verdict { border-radius:12px; padding:13px; margin-bottom:12px; font-size:14px; font-weight:600; display:flex; gap:8px; align-items:center; }
+  .verdict.ok { background:#D9EFE3; color:#12543A; }
+  .verdict.bad { background:#F7DFDC; color:#8E241C; }
+  .finding { font-family:var(--mono); font-size:11px; padding:6px 8px; border-radius:6px; margin-bottom:5px; word-break:break-word; }
+  .finding.e { background:#F7DFDC; color:#8E241C; }
+  .finding.w { background:#F6ECD4; color:#6E4D0C; }
+
+  /* ---- bench panels ---- */
+  .panel { background:var(--panel); border:1px solid var(--rule); border-radius:14px; padding:20px; margin-bottom:18px; }
+  .panel h2 { font-family:var(--serif); font-size:19px; margin:0 0 10px; font-weight:600; }
+  .panel h3 { font-family:var(--mono); font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); margin:20px 0 8px; font-weight:600; }
+  .panel h3:first-child { margin-top:0; }
+  .panel p { margin:0 0 10px; font-size:14px; color:var(--muted); }
+  .panel p strong, .panel li strong { color:var(--ink); font-weight:600; }
+  .panel ul { margin:0 0 10px; padding-left:18px; font-size:14px; color:var(--muted); }
+  .panel li { margin-bottom:5px; }
+
+  .bytes {
+    font-family:var(--mono); font-size:11.5px; background:var(--panel-2);
+    border:1px solid var(--rule); border-radius:9px; padding:10px;
+    overflow-x:auto; white-space:pre; margin-bottom:10px; color:var(--ink);
+  }
+  .chain { display:flex; flex-direction:column; gap:6px; }
+  .link { display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:baseline; font-family:var(--mono); font-size:11px; }
+  .link .lbl { color:var(--muted); }
+  .link .h { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ok-mark { color:var(--pass); font-weight:700; }
+  .bad-mark { color:var(--fail); font-weight:700; }
+
+  .selfcheck { display:flex; flex-direction:column; gap:7px; }
+  .vec { display:flex; gap:9px; align-items:baseline; font-size:12.5px; }
+  .vec .st { font-family:var(--mono); font-weight:700; font-size:11px; }
+  .vec .nm { font-family:var(--mono); font-size:11px; color:var(--ink); }
+  .vec .dt { color:var(--muted); font-size:11.5px; }
+
+  .danger {
+    background:none; border:1px solid var(--fail); color:var(--fail);
+    border-radius:9px; padding:9px 13px; font-size:13px; cursor:pointer;
+    font-family:var(--ui); font-weight:600;
+  }
+  .danger:hover { background:var(--fail-bg); }
+
+  .filing { display:grid; grid-template-columns:auto 1fr; gap:7px 14px; font-size:13.5px; }
+  .filing dt { font-family:var(--mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); padding-top:3px; }
+  .filing dd { margin:0; color:var(--ink); }
+
+  .caveat {
+    border-left:3px solid var(--warn); background:var(--warn-bg);
+    padding:11px 13px; border-radius:0 9px 9px 0; font-size:13px; color:var(--ink);
+  }
+  .caveat strong { font-weight:700; }
+  code { font-family:var(--mono); font-size:.92em; background:var(--panel-2); padding:1px 5px; border-radius:4px; }
+  .hidden { display:none !important; }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">Morningstar · iOS · protocol 0.3</p>
+    <h1>The instrument, on a bench</h1>
+    <p class="lede">A working stand-in for the native app — the real screens, copy, and glyphs, driven by
+      <strong>the actual canonicalization and hashing</strong> ported to JavaScript. Captures you commit here are
+      hashed and chained for real, and the audit genuinely re-verifies. It is not the running app:
+      SwiftUI needs Xcode. Everything else here is true.</p>
+    <p class="lede" style="margin-top:10px">New in protocol 0.3: <strong>Record</strong> — capture at event speed, unsorted on purpose.</p>
+  </header>
+
+  <div class="layout">
+    <div class="stage-col">
+      <p class="eyebrow" style="margin:0 0 10px">iPhone 17 Pro · 402 × 874 pt · Dynamic Island</p>
+      <div class="device">
+        <div class="screen">
+          <div class="island"></div>
+          <div class="screen-scroll" id="screen"></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <section class="panel">
+        <h2>What you're looking at</h2>
+        <p>Tap a glyph to walk the capture liturgy. The four stages are the original
+          <em>Digital Mindfulness</em> sections, re-meant onto the instrument — the site is the design source,
+          not a spec.</p>
+        <ul>
+          <li><strong>☥ Breath — Arrive.</strong> Grounding, and one factual line about the gap since your last capture. It reads nothing into it.</li>
+          <li><strong>☁ Mind — Observe.</strong> Three evidence channels, plus a wander pane that is never saved.</li>
+          <li><strong>☉ Eye — Review.</strong> Leakage flags that never block. Every path is forward.</li>
+          <li><strong>☯ Play — Commit.</strong> The capture settles into the ledger, immutable from that instant.</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>The ledger, live</h2>
+        <h3>Canonical bytes of the last committed capture</h3>
+        <div class="bytes" id="bytes">Nothing committed yet — walk the journey and commit a capture.</div>
+        <h3>Hash chain</h3>
+        <div class="chain" id="chain"><p style="margin:0;font-size:13px">Empty. The chain starts at the genesis hash (64 zeros).</p></div>
+      </section>
+
+      <section class="panel">
+        <h2>Does this page hash correctly?</h2>
+        <p>Rather than asking you to take that on trust: the page runs the reference implementation's own
+          <strong>golden vectors</strong> through its canonicalizer and SHA-256, and compares byte-for-byte.
+          These fixtures are the same ones gating CI.</p>
+        <div class="selfcheck" id="selfcheck"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Protocol 0.3 — capture at event speed</h2>
+        <p>The protocol has always recorded <em>recall latency</em>: an admission that memory decays
+          between an event and the writing of it. The four-stage journey widens that gap. <strong>Record</strong>
+          closes it — one blurt, stored in an <code>unsorted</code> channel rather than filed into a
+          layer it may not belong in. Sorting it later is an <em>annotation</em>, never an edit.</p>
+        <p>Adding a field to hashed content is exactly the change that silently invalidates history.
+          It doesn't here, because content is rebuilt from each capture's <strong>own</strong> recorded
+          version. Seed a capture written the way the previous release wrote them and watch it keep
+          verifying beside 0.3 ones:</p>
+        <button class="danger" id="seed" style="border-color:var(--pass);color:var(--pass)">Add a protocol 0.2 capture</button>
+        <div class="selfcheck" id="eras" style="margin-top:12px"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Break it on purpose</h2>
+        <p>The whole point of the design is that a silent edit cannot hide. Rewrite a committed capture
+          behind the app's back, then re-open Audit and watch it fail.</p>
+        <button class="danger" id="tamper">Rewrite a stored capture</button>
+        <p style="margin:10px 0 0;font-size:12.5px" id="tamper-note"></p>
+      </section>
+
+      <section class="panel">
+        <h2>Filing</h2>
+        <p>One simplified scheme, replacing the three overlapping ones — stage names, store category, and
+          preview sections all collapse to the same four glyphs.</p>
+        <dl class="filing">
+          <dt>Category</dt><dd>Health &amp; Fitness · secondary Lifestyle</dd>
+          <dt>Age rating</dt><dd>4+ — no objectionable content, no ads, no in-app purchase</dd>
+          <dt>Data collected</dt><dd>None. No analytics, no account, no network calls at all.</dd>
+          <dt>Tracking</dt><dd>None — nothing leaves the device</dd>
+        </dl>
+        <p style="margin:12px 0 0;font-size:12.5px">Your note trailed off at “up to a certain age exclusively as:” —
+          I've set <strong>4+</strong> as the safe default and kept every category on the four-glyph scheme. Tell me the
+          threshold you meant and I'll change it.</p>
+      </section>
+
+      <section class="panel">
+        <h2>The real thing</h2>
+        <p>On your Mac, where Xcode can build it:</p>
+        <div class="bytes">brew install xcodegen
+cd ios/MorningstarApp &amp;&amp; xcodegen
+open Morningstar.xcodeproj   # then run on a simulator</div>
+        <div class="caveat"><strong>Fidelity note.</strong> The frame is iPhone 17 Pro geometry (402 × 874 pt, Dynamic Island). The device screen keeps the app's warm paper palette in
+          both light and dark, because the real app is light-only today. Inventing a dark mode here would show you
+          something that doesn't exist.</div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- SHA-256 (compact, synchronous, no secure-context dependency) ---------- */
+const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+function sha256Hex(bytes){
+  const H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const l=bytes.length, withOne=l+1, padded=withOne+((56-withOne%64)+64)%64, total=padded+8;
+  const m=new Uint8Array(total); m.set(bytes); m[l]=0x80;
+  const bits=l*8; const dv=new DataView(m.buffer);
+  dv.setUint32(total-4, bits>>>0); dv.setUint32(total-8, Math.floor(bits/4294967296));
+  const w=new Uint32Array(64);
+  for(let i=0;i<total;i+=64){
+    for(let t=0;t<16;t++) w[t]=dv.getUint32(i+t*4);
+    for(let t=16;t<64;t++){
+      const a=w[t-15], b=w[t-2];
+      const s0=((a>>>7)|(a<<25))^((a>>>18)|(a<<14))^(a>>>3);
+      const s1=((b>>>17)|(b<<15))^((b>>>19)|(b<<13))^(b>>>10);
+      w[t]=(w[t-16]+s0+w[t-7]+s1)>>>0;
+    }
+    let [a,b,c,d,e,f,g,h]=H;
+    for(let t=0;t<64;t++){
+      const S1=((e>>>6)|(e<<26))^((e>>>11)|(e<<21))^((e>>>25)|(e<<7));
+      const ch=(e&f)^(~e&g);
+      const t1=(h+S1+ch+K[t]+w[t])>>>0;
+      const S0=((a>>>2)|(a<<30))^((a>>>13)|(a<<19))^((a>>>22)|(a<<10));
+      const maj=(a&b)^(a&c)^(b&c);
+      const t2=(S0+maj)>>>0;
+      h=g; g=f; f=e; e=(d+t1)>>>0; d=c; c=b; b=a; a=(t1+t2)>>>0;
+    }
+    H[0]=(H[0]+a)>>>0; H[1]=(H[1]+b)>>>0; H[2]=(H[2]+c)>>>0; H[3]=(H[3]+d)>>>0;
+    H[4]=(H[4]+e)>>>0; H[5]=(H[5]+f)>>>0; H[6]=(H[6]+g)>>>0; H[7]=(H[7]+h)>>>0;
+  }
+  return H.map(x=>x.toString(16).padStart(8,"0")).join("");
+}
+
+/* ---------- RFC 8785 canonicalization ----------
+   JavaScript gives two pieces for free, and that is not luck: JCS specifies
+   ECMAScript semantics. Object key sort order in JS is UTF-16 code-unit order,
+   which is exactly what JCS requires; and String(number) IS ES6 Number::toString. */
+function escapeJCS(s){
+  let out='"';
+  for (const ch of s) {
+    const c = ch.codePointAt(0);
+    if (ch === '"') out += '\\"';
+    else if (ch === "\\") out += "\\\\";
+    else if (c === 8) out += "\\b";
+    else if (c === 9) out += "\\t";
+    else if (c === 10) out += "\\n";
+    else if (c === 12) out += "\\f";
+    else if (c === 13) out += "\\r";
+    else if (c < 0x20) out += "\\u" + c.toString(16).padStart(4, "0");
+    else out += ch;
+  }
+  return out + '"';
+}
+function canonical(v){
+  if (v === null) return "null";
+  if (typeof v === "boolean") return v ? "true" : "false";
+  if (typeof v === "number") {
+    if (!isFinite(v)) throw new Error("NaN and Infinity are not representable");
+    return String(v);
+  }
+  if (typeof v === "string") return escapeJCS(v);
+  if (Array.isArray(v)) return "[" + v.map(canonical).join(",") + "]";
+  const keys = Object.keys(v).sort();           // UTF-16 code-unit order
+  return "{" + keys.map(k => escapeJCS(k) + ":" + canonical(v[k])).join(",") + "}";
+}
+const enc = new TextEncoder();
+const integrityHash = obj => sha256Hex(enc.encode(canonical(obj)));
+const GENESIS = "0".repeat(64);
+
+/* ---------- golden vectors (verbatim from morningstar/tests/golden/jcs_vectors.json) ---------- */
+const VECTORS = [
+  { name:"key_sorting_ascii", value:{b:2,a:1,A:0},
+    canonical:'{"A":0,"a":1,"b":2}',
+    sha256:"5f05c47104ba1ac24d8cb54dd5f23b15487f4770c9eb767c1c64b64aefba6501",
+    note:"uppercase sorts before lowercase" },
+  { name:"unicode_literal_passthrough", value:{text:"émotions ✓ — fin de partie"},
+    canonical:'{"text":"émotions ✓ — fin de partie"}',
+    sha256:"82343e68314c0477914a3e25cc654fda4154d740a40e34de31795a7b0f0a285c",
+    note:"non-ASCII stays literal, never \\u-escaped" },
+  { name:"utf16_key_order_non_bmp", value:{"！":"bmp","😀":"non-bmp"},
+    canonical:'{"😀":"non-bmp","！":"bmp"}',
+    sha256:"d6338b701cd6f66bb109440edb0a25114a3cb2c4de4733dfa810fa2551f3de25",
+    note:"the discriminator: 😀 sorts AFTER ！ by code point, BEFORE it by UTF-16" }
+];
+
+/* ---------- leakage rules (from Leakage.swift) ---------- */
+const RULES = [
+  { re:/\bbecause\b/gi, ch:["observation","phenomenology","action"],
+    why:"“because” usually introduces a causal explanation, which belongs in the interpretation layer." },
+  { re:/\b(?:he|she|they|you)\s+(?:want(?:s|ed)?|meant|intend(?:s|ed)?|(?:was|were|is|are)\s+trying|tried\s+to|think(?:s)?|thought)\b/gi,
+    ch:["observation","phenomenology"],
+    why:"This looks like a claim about another person's motives or inner state, which can't be directly observed." },
+  { re:/\b(?:narcissist\w*|sociopath\w*|manipulative|manipulator|toxic|gaslight\w*|avoidant|passive[- ]aggressive)\b/gi,
+    ch:["observation","phenomenology","action"],
+    why:"This looks like a personality or diagnostic label rather than an observation or felt experience." },
+  { re:/\bmade\s+me\b/gi, ch:["observation","phenomenology"],
+    why:"“made me” attributes causation. The feeling is evidence; the cause is an interpretation." },
+  { re:/\b(?:will\s+never|will\s+always|is\s+going\s+to\s+(?:leave|end|fail)|doomed)\b/gi,
+    ch:["observation","phenomenology","action"],
+    why:"This looks like a prediction. Captures record what happened and what was felt, not what will happen." },
+  { re:/\b(?:means\s+that|which\s+means|clearly|obviously)\b/gi, ch:["observation"],
+    why:"This looks like inferred meaning rather than an externally observable fact." }
+];
+function leakage(draft){
+  const out=[];
+  for (const ch of ["observation","phenomenology","action"]) {
+    for (const rule of RULES) {
+      if (!rule.ch.includes(ch)) continue;
+      rule.re.lastIndex = 0;
+      let m;
+      while ((m = rule.re.exec(draft[ch] || "")) !== null) out.push({ ch, text:m[0], why:rule.why });
+    }
+  }
+  return out;
+}
+
+/* ---------- state ---------- */
+const STAGES = [
+  { key:"breath", glyph:"☥", name:"Breath", role:"Arrive" },
+  { key:"mind",   glyph:"☁", name:"Mind",   role:"Observe" },
+  { key:"eye",    glyph:"☉", name:"Eye",    role:"Review" },
+  { key:"play",   glyph:"☯", name:"Play",   role:"Commit" }
+];
+const S = {
+  view:"hub", stage:0,
+  draft:{ observation:"", phenomenology:"", action:"", wander:"" }, quickText:"", justQuick:null,
+  captures:[], events:[], lastHash:GENESIS, committedAt:null, tampered:false
+};
+const el = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const shortHash = h => h.slice(0,10) + "…" + h.slice(-6);
+
+/* Protocol 0.3 added the `unsorted` channel. It joins hashed content from
+   0.3 onward and must be absent before it, so content is always rebuilt from
+   the capture's OWN recorded version — otherwise the bump would invalidate
+   every capture written earlier. Same rule as Morningstar.contentIncludesUnsorted. */
+const includesUnsorted = v => v >= "0.3";
+
+function captureContent(f){
+  const content = {
+    id: f.id, sequence_number: f.sequence_number, created_at: f.created_at,
+    recorded_at: null, timezone: f.timezone,
+    observation: f.observation, phenomenology: f.phenomenology, action: f.action,
+    source: null, recall_latency: null,
+    protocol_version: f.protocol_version, schema_version: f.schema_version,
+    context_snapshot: f.context_snapshot,
+    previous_hash: f.previous_hash, committed_at: f.committed_at
+  };
+  if (includesUnsorted(f.protocol_version)) content.unsorted = f.unsorted ?? null;
+  return content;
+}
+
+function commitFields({ observation="", phenomenology="", action="", unsorted=null,
+                        protocolVersion="0.3", captureSource="preview" }){
+  const seq = S.captures.length + 1;
+  const now = new Date().toISOString();
+  return {
+    id: "c" + seq + "-" + Math.random().toString(16).slice(2,10),
+    sequence_number: seq, created_at: now, timezone:
+      Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+    observation, phenomenology, action, unsorted,
+    protocol_version: protocolVersion, schema_version: protocolVersion,
+    context_snapshot: { automatic: {
+      captured_at_utc: now, capture_source: captureSource, app_version: "0.3.0",
+      elapsed_since_previous_capture_seconds:
+        S.committedAt ? Math.round((Date.now() - S.committedAt)/1000) : null
+    }, stated: {} },
+    previous_hash: S.lastHash, committed_at: now
+  };
+}
+
+function store(fields){
+  const content = captureContent(fields);
+  const hash = integrityHash(content);
+  const capture = { fields, content, hash, hidden:false, canonical: canonical(content) };
+  S.captures.push(capture);
+  S.events.push({ type:"capture_committed", hash, previous:S.lastHash, seq:fields.sequence_number });
+  S.lastHash = hash;
+  S.committedAt = Date.now();
+  renderBench();
+  renderEras();
+  return capture;
+}
+
+function commitCapture(){
+  const capture = store(commitFields({
+    observation: S.draft.observation, phenomenology: S.draft.phenomenology,
+    action: S.draft.action
+  }));
+  S.draft = { observation:"", phenomenology:"", action:"", wander:"" };
+  return capture;
+}
+
+/* The fast path: one blurt, recorded unsorted rather than filed into a
+   channel it may not belong in. No leakage check — there is no review step
+   at event speed, and nothing may stand between a person and the record. */
+function commitQuick(text){
+  return store(commitFields({ unsorted: text, captureSource: "quick" }));
+}
+
+/* Writes a capture the way the previous release would have: protocol 0.2,
+   hashed over a field set with no `unsorted` in it. */
+function seedLegacyCapture(){
+  return store(commitFields({
+    observation: "written under protocol 0.2, before the bump",
+    protocolVersion: "0.2", captureSource: "preview-legacy"
+  }));
+}
+
+function verify(){
+  const errors=[], warnings=[];
+  let previous = GENESIS;
+  for (const c of S.captures) {
+    const label = "capture " + String(c.fields.sequence_number).padStart(3,"0");
+    if (c.fields.previous_hash !== previous) errors.push(label + ": previous-hash break in the chain");
+    previous = c.hash;
+    if (integrityHash(captureContent(c.fields)) !== c.hash)
+      errors.push(label + ": stored hash does not match content (possible retrospective edit)");
+    if (c.hidden) warnings.push(label + ": hidden from normal view (evidence retained)");
+  }
+  return { ok: errors.length === 0, errors, warnings };
+}
+
+/* ---------- app rendering ---------- */
+function render(){
+  const scr = el("screen");
+  scr.innerHTML = ({ hub:viewHub, journey:viewJourney, archive:viewArchive, audit:viewAudit, quick:viewQuick })[S.view]();
+  wire();
+  scr.scrollTop = 0;
+}
+
+function reentryLine(){
+  if (!S.captures.length) return "";
+  const last = S.captures[S.captures.length-1];
+  const secs = Math.max(0, Math.round((Date.now() - S.committedAt)/1000));
+  const ago = secs < 60 ? "less than a minute" : Math.round(secs/60) + "m";
+  return "Your previous capture (capture " + String(last.content.sequence_number).padStart(3,"0") +
+         ") was committed " + ago + " ago.";
+}
+
+function viewHub(){
+  const line = reentryLine();
+  return `<div class="hub">
+    <h1 class="app-title">Morningstar</h1>
+    <p class="app-note" style="max-width:30ch">An observational instrument. It records; it does not judge.</p>
+    <div class="portal">
+      ${STAGES.map((s,i)=>`<button data-stage="${i}" aria-label="${s.name} — ${s.role}">
+        <span class="g glyph">${s.glyph}</span><span class="n">${s.name}</span><span class="r">${s.role}</span>
+      </button>`).join("")}
+    </div>
+    ${line ? `<p class="app-note" style="max-width:32ch">${esc(line)}</p>` : ""}
+    <div style="flex:1"></div>
+    <div class="facts">
+      <div><span class="glyph">⌂</span> Everything stays on this device</div>
+      <div><span class="glyph">⇥</span> No account, no network, no analytics</div>
+      <div><span class="glyph">⊟</span> Committed captures are never edited</div>
+    </div>
+    <div class="linkrow">
+      <button class="linkbtn" data-view="quick">Record</button>
+      <button class="linkbtn" data-view="archive">Archive${S.captures.length?" ("+S.captures.length+")":""}</button>
+      <button class="linkbtn" data-view="audit">Audit</button>
+    </div>
+  </div>`;
+}
+
+function viewJourney(){
+  const st = STAGES[S.stage];
+  const head = `<div class="jhead">
+      <button class="home glyph" data-view="hub" aria-label="Return to the hub">${st.glyph}</button>
+      <div class="dots">${STAGES.map((_,i)=>`<span class="dot ${i<=S.stage?"on":""}"></span>`).join("")}</div>
+      <span class="jname">${st.name}</span>
+    </div>`;
+  return head + ({ breath:stageBreath, mind:stageMind, eye:stageEye, play:stagePlay })[st.key]();
+}
+
+function stageBreath(){
+  const line = reentryLine();
+  return `<div class="breath">
+    <div class="pulse"></div>
+    <h2 class="app-h2">Arrive. One slow breath before you record.</h2>
+    ${line ? `<p class="app-note" style="max-width:30ch">${esc(line)}</p>`
+           : `<p class="app-note" style="max-width:30ch">Nothing recorded yet. This is the first.</p>`}
+    <div style="width:100%;margin-top:8px"><button class="primary" data-next="1">Begin <span class="glyph">☁</span></button></div>
+  </div>`;
+}
+
+function stageMind(){
+  const f=(k,label,hint)=>`<div class="field">
+      <label for="f-${k}">${label}</label><span class="hint">${hint}</span>
+      <textarea id="f-${k}" data-draft="${k}" rows="3">${esc(S.draft[k])}</textarea>
+    </div>`;
+  return `<div class="pad">
+    ${f("observation","What happened?","Externally observable facts — times, messages, events. Verbatim quotes welcome.")}
+    ${f("phenomenology","What did you experience?","Immediate feelings and sensations, in your own words.")}
+    ${f("action","What did you do?","Behavior actually performed. No justification needed.")}
+    <div class="wander">
+      <div style="font-family:var(--serif);font-size:15px;font-weight:600">A space to let your mind wander</div>
+      <p class="app-note" style="margin:2px 0 7px">No purpose to this. It is never saved.</p>
+      <textarea data-draft="wander" rows="2" placeholder="Express your thoughts as if they were wandering by…">${esc(S.draft.wander)}</textarea>
+      <div style="margin-top:7px"><button class="ghost" id="refresh">Refresh</button></div>
+    </div>
+    <div style="margin-top:16px"><button class="primary" data-next="1">Review <span class="glyph">☉</span></button></div>
+  </div>`;
+}
+
+function stageEye(){
+  const warns = leakage(S.draft);
+  const block=(t,v)=>`<div class="review-block"><h4>${t}</h4>
+      <p class="${v?"":"empty"}">${v?esc(v):"(empty)"}</p></div>`;
+  return `<div class="pad">
+    <h2 class="app-h2">Review before committing</h2>
+    <p class="app-note" style="margin-bottom:14px">Once committed, this becomes part of the permanent record.
+      Later thoughts can be added as annotations — the original will not change.</p>
+    ${block("Observation",S.draft.observation)}
+    ${block("Phenomenology",S.draft.phenomenology)}
+    ${block("Action",S.draft.action)}
+    ${warns.length ? `<div style="margin-top:16px">
+      <h4 style="margin:0 0 2px;font-size:14px">Possible layer leakage</h4>
+      <p class="app-note" style="margin-bottom:9px">Gentle flags, not corrections. You can commit exactly what you wrote.</p>
+      ${warns.map(w=>`<div class="chip">
+          <div class="m">In ${w.ch}, “${esc(w.text)}”</div>
+          <div class="why">${esc(w.why)}</div>
+        </div>`).join("")}
+    </div>` : ""}
+    <div style="margin-top:16px"><button class="primary" data-next="1">Continue to commit <span class="glyph">☯</span></button></div>
+  </div>`;
+}
+
+function stagePlay(){
+  if (S.justCommitted) {
+    const c = S.justCommitted;
+    return `<div class="breath">
+      <div class="glyph" style="font-size:58px">☯</div>
+      <h2 class="app-h2">Capture ${String(c.fields.sequence_number).padStart(3,"0")} committed.</h2>
+      <p class="app-note" style="max-width:32ch">It is part of the record now. Anything you add later will be an annotation.</p>
+      <div class="bytes" style="font-size:10px;width:100%;text-align:left;background:rgba(255,255,255,.5);border-color:var(--app-rule);color:var(--app-ink)">integrity ${shortHash(c.hash)}</div>
+      <div style="width:100%"><button class="primary" data-view="hub">Done</button></div>
+    </div>`;
+  }
+  const empty = !S.draft.observation && !S.draft.phenomenology && !S.draft.action;
+  return `<div class="breath">
+    <div class="glyph" style="font-size:58px;opacity:.5">☯</div>
+    <h2 class="app-h2">Ready to commit</h2>
+    ${empty?`<p class="app-note" style="max-width:30ch">Nothing written yet — go back to Mind and record something first.</p>`:""}
+    <div style="width:100%"><button class="primary" id="commit" ${empty?"disabled style=opacity:.45":""}>Commit capture</button></div>
+  </div>`;
+}
+
+function viewQuick(){
+  if (S.justQuick) {
+    const c = S.justQuick;
+    return `<div class="breath">
+      <div class="glyph" style="font-size:56px">☯</div>
+      <h2 class="app-h2">Capture ${String(c.fields.sequence_number).padStart(3,"0")} committed.</h2>
+      <p class="app-note" style="max-width:32ch">Recorded as written, unsorted. You can separate it
+        into observation, experience, and action later — that gets added alongside, and this stays
+        as you took it down.</p>
+      <div style="width:100%"><button class="primary" data-view="hub">Done</button></div>
+    </div>`;
+  }
+  return `<div class="pad">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button class="home glyph" data-view="hub" style="font-size:22px">☯</button>
+      <h2 class="app-h2" style="margin:0">Record</h2>
+    </div>
+    <h3 style="font-family:var(--serif);font-size:17px;margin:0 0 4px">Say what happened. Don't sort it.</h3>
+    <p class="app-note" style="margin-bottom:10px">However it comes out is fine. Nothing here is
+      checked, corrected, or counted.</p>
+    <textarea id="quicktext" rows="6" placeholder="…">${esc(S.quickText)}</textarea>
+    <p class="app-note" style="margin:8px 0 14px">On a phone this is where you'd hold the keyboard's
+      microphone. Dictation runs on-device; no speech leaves the phone.</p>
+    <button class="primary" id="quickcommit">Record</button>
+  </div>`;
+}
+
+function viewArchive(){
+  const rows = S.captures.length ? S.captures.slice().reverse().map(c=>{
+    const first = c.fields.unsorted
+      || [c.fields.observation,c.fields.phenomenology,c.fields.action].find(x=>x) || "(empty)";
+    return `<div class="rowitem">
+      <div class="body">
+        <div class="seq">Capture ${String(c.fields.sequence_number).padStart(3,"0")}
+          ${c.hidden?'<span class="badge">hidden</span>':""}
+          ${c.fields.unsorted?'<span class="badge">unsorted</span>':""}
+          ${c.fields.protocol_version!=="0.3"?'<span class="badge">v'+c.fields.protocol_version+'</span>':""}</div>
+        <div class="snip">${esc(first.split("\n")[0])}</div>
+      </div>
+      <button class="ghost" data-hide="${c.fields.sequence_number}">${c.hidden?"Unhide":"Hide"}</button>
+    </div>`;
+  }).join("") : `<p class="app-note">Nothing committed yet.</p>`;
+  return `<div class="pad">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <button class="home glyph" data-view="hub" style="font-size:22px">☯</button>
+      <h2 class="app-h2" style="margin:0">Archive</h2>
+    </div>
+    ${rows}
+    <p class="app-note" style="margin-top:16px">Captures are evidence and are never editable here.
+      Hiding is a view preference and is reversible; the evidence stays.</p>
+  </div>`;
+}
+
+function viewAudit(){
+  const r = verify();
+  return `<div class="pad">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <button class="home glyph" data-view="hub" style="font-size:22px">☉</button>
+      <h2 class="app-h2" style="margin:0">Audit</h2>
+    </div>
+    <div class="verdict ${r.ok?"ok":"bad"}">
+      <span>${r.ok?"✓":"✕"}</span><span>${r.ok?"Integrity check passed":"Integrity check failed"}</span>
+    </div>
+    ${r.errors.map(e=>`<div class="finding e">${esc(e)}</div>`).join("")}
+    ${r.warnings.map(w=>`<div class="finding w">${esc(w)}</div>`).join("")}
+    <div style="margin-top:14px">
+      <div class="rowitem"><div class="body"><span class="seq">captures</span></div><span>${S.captures.length}</span></div>
+      <div class="rowitem"><div class="body"><span class="seq">events</span></div><span>${S.events.length}</span></div>
+      <div class="rowitem"><div class="body"><span class="seq">protocol</span></div><span>0.3 (RFC 8785)</span></div>
+    </div>
+    <p class="app-note" style="margin-top:14px">Hashes provide tamper evidence for this local store — not a
+      cryptographic guarantee against someone with full access to the device.</p>
+  </div>`;
+}
+
+function wire(){
+  const scr = el("screen");
+  scr.querySelectorAll("[data-stage]").forEach(b=>b.onclick=()=>{
+    S.stage=+b.dataset.stage; S.view="journey"; S.justCommitted=null; render();
+  });
+  scr.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{
+    S.view=b.dataset.view; if(S.view==="hub"){ S.justCommitted=null; S.justQuick=null; } render();
+  });
+  scr.querySelectorAll("[data-next]").forEach(b=>b.onclick=()=>{
+    if (S.stage < STAGES.length-1) { S.stage++; render(); }
+  });
+  scr.querySelectorAll("[data-draft]").forEach(t=>t.oninput=()=>{ S.draft[t.dataset.draft]=t.value; });
+  const refresh = el("refresh");
+  if (refresh) refresh.onclick=()=>{ S.draft.wander=""; render(); };
+  const quicktext = el("quicktext");
+  if (quicktext) quicktext.oninput = () => { S.quickText = quicktext.value; };
+  const quickcommit = el("quickcommit");
+  if (quickcommit) quickcommit.onclick = () => {
+    const text = S.quickText.trim();
+    if (!text) return;
+    S.justQuick = commitQuick(text);
+    S.quickText = "";
+    render();
+  };
+  const commit = el("commit");
+  if (commit) commit.onclick=()=>{ S.justCommitted = commitCapture(); render(); };
+  scr.querySelectorAll("[data-hide]").forEach(b=>b.onclick=()=>{
+    const c = S.captures.find(x=>x.fields.sequence_number===+b.dataset.hide);
+    c.hidden=!c.hidden; render();
+  });
+}
+
+/* ---------- bench rendering ---------- */
+function renderBench(){
+  const last = S.captures[S.captures.length-1];
+  el("bytes").textContent = last
+    ? last.canonical.replace(/,"/g, ',\n"')
+    : "Nothing committed yet — walk the journey and commit a capture.";
+
+  const chain = el("chain");
+  if (!S.captures.length) {
+    chain.innerHTML = `<p style="margin:0;font-size:13px;color:var(--muted)">Empty. The chain starts at the genesis hash (64 zeros).</p>`;
+  } else {
+    let previous = GENESIS;
+    chain.innerHTML = S.captures.map(c=>{
+      const linked = c.fields.previous_hash === previous;
+      const intact = integrityHash(c.content) === c.hash;
+      previous = c.hash;
+      return `<div class="link">
+        <span class="lbl">${String(c.fields.sequence_number).padStart(3,"0")}</span>
+        <span class="h">${esc(shortHash(c.hash))}
+          <span class="${linked&&intact?"ok-mark":"bad-mark"}">${linked&&intact?"✓ verifies":"✕ broken"}</span></span>
+      </div>`;
+    }).join("");
+  }
+}
+
+function renderSelfCheck(){
+  el("selfcheck").innerHTML = VECTORS.map(v=>{
+    const c = canonical(v.value), h = integrityHash(v.value);
+    const ok = c === v.canonical && h === v.sha256;
+    return `<div class="vec">
+      <span class="st ${ok?"ok-mark":"bad-mark"}">${ok?"PASS":"FAIL"}</span>
+      <span><span class="nm">${esc(v.name)}</span><br><span class="dt">${esc(v.note)}</span></span>
+    </div>`;
+  }).join("");
+}
+
+el("tamper").onclick = () => {
+  if (!S.captures.length) {
+    el("tamper-note").textContent = "Commit a capture first — there is nothing to falsify yet.";
+    return;
+  }
+  const target = S.captures[S.captures.length-1];
+  if (target.fields.unsorted !== null && target.fields.unsorted !== undefined) {
+    target.fields.unsorted = "it never happened";
+  } else {
+    target.fields.observation = "it never happened";
+  }
+  target.canonical = canonical(captureContent(target.fields));
+  S.tampered = true;
+  el("tamper-note").innerHTML = "Rewrote capture " +
+    String(target.fields.sequence_number).padStart(3,"0") +
+    " directly in storage, leaving its stored hash untouched — exactly what an edit-in-place would do. " +
+    "<strong>Open Audit in the app.</strong>";
+  renderBench();
+  renderEras();
+  if (S.view === "audit") render();
+};
+
+/* Screens are linkable: #mind, #eye, #archive, #audit … so a particular
+   screen can be pointed at directly. */
+function applyHash(){
+  const want = (location.hash || "").replace("#","");
+  if (!want) return false;
+  const stage = STAGES.findIndex(s => s.key === want);
+  if (stage >= 0) { S.stage = stage; S.view = "journey"; return true; }
+  if (["hub","archive","audit","quick"].includes(want)) { S.view = want; return true; }
+  return false;
+}
+window.addEventListener("hashchange", () => { if (applyHash()) render(); });
+
+function renderEras(){
+  const box = el("eras");
+  if (!S.captures.length) {
+    box.innerHTML = `<p style="margin:0;font-size:13px;color:var(--muted)">No captures yet.</p>`;
+    return;
+  }
+  box.innerHTML = S.captures.map(c => {
+    const ok = integrityHash(captureContent(c.fields)) === c.hash;
+    const hasUnsorted = "unsorted" in captureContent(c.fields);
+    return `<div class="vec">
+      <span class="st ${ok?"ok-mark":"bad-mark"}">${ok?"VERIFIES":"BROKEN"}</span>
+      <span><span class="nm">capture ${String(c.fields.sequence_number).padStart(3,"0")} · protocol ${esc(c.fields.protocol_version)}</span><br>
+      <span class="dt">hashed over ${hasUnsorted?"a field set including <code>unsorted</code>":"a field set with no <code>unsorted</code> in it"}</span></span>
+    </div>`;
+  }).join("");
+}
+
+el("seed").onclick = () => { seedLegacyCapture(); if (S.view!=="hub") render(); };
+
+renderSelfCheck();
+renderBench();
+renderEras();
+applyHash();
+render();
+</script>
+
+<footer style="max-width:1180px;margin:0 auto;padding:0 16px 40px;font-size:12.5px;color:var(--muted);font-family:var(--mono)">
+  Source and the real Swift implementation:
+  <a href="https://github.com/gitwid/upgraded-enigma" style="color:var(--wave)">github.com/gitwid/upgraded-enigma</a>
+</footer>
+</body>
+</html>
