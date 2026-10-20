@@ -26,10 +26,10 @@ final class QuickCaptureTests: XCTestCase {
 
     func testProtocolAndSchemaAreRegisteredThroughOhThree() throws {
         XCTAssertEqual(try store.schemaVersions().compactMap { $0.string("schema_version") },
-                       ["0.1", "0.2", "0.3"])
+                       ["0.1", "0.2", "0.3", "0.4"])
         XCTAssertEqual(try store.protocolVersions().compactMap { $0.string("version") },
-                       ["0.1", "0.2", "0.3"])
-        XCTAssertEqual(store.schemaVersion, "0.3")
+                       ["0.1", "0.2", "0.3", "0.4"])
+        XCTAssertEqual(store.schemaVersion, "0.4")
         XCTAssertTrue(try store.verifyIntegrity().ok)
     }
 
@@ -43,7 +43,7 @@ final class QuickCaptureTests: XCTestCase {
         // Immediacy is not asserted; only the path taken is recorded.
         XCTAssertNil(capture.recallLatency)
         XCTAssertEqual(capture.contextSnapshot.automatic["capture_source"], .string("quick"))
-        XCTAssertEqual(capture.protocolVersion, "0.3")
+        XCTAssertEqual(capture.protocolVersion, "0.4")
 
         let report = try store.verifyIntegrity()
         XCTAssertTrue(report.ok, "\(report.errors)")

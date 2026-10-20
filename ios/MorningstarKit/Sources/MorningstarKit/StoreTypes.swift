@@ -35,6 +35,28 @@ public enum SchemaVersionError: Error, Equatable, CustomStringConvertible {
     }
 }
 
+/// Raised when an action is stopped because the context does not permit it.
+/// It carries the regime so the caller can respond in kind: accommodate,
+/// make the resistance legible, or stop at the edge.
+public enum PermissibilityError: Error, CustomStringConvertible {
+    case refused(action: String, result: Permissibility, regime: Regime)
+
+    public var description: String {
+        guard case .refused(let action, let result, let regime) = self else { return "refused" }
+        switch result {
+        case .impermissible(let reason):
+            return "\(action) is impermissible here: \(reason)"
+        case .undetermined:
+            return "\(action) is not permitted because permissibility is undetermined "
+                + "— an unanswered question is not consent (\(regime.rawValue))"
+        case .conditional(let conditions):
+            return "\(action) is permitted only while: \(conditions.joined(separator: "; "))"
+        case .permitted:
+            return "\(action) was refused despite being permitted — this is a bug"
+        }
+    }
+}
+
 /// The result of re-verifying a store. Integrity conditions are instrument
 /// states, not user failures: `warnings` are informational (redactions,
 /// hidden captures, objects only the reference implementation can verify),
@@ -50,6 +72,7 @@ public struct IntegrityReport: Equatable, Sendable {
     public var interpretationCount = 0
     public var schemaVersionCount = 0
     public var protocolVersionCount = 0
+    public var assessmentCount = 0
 
     public init() {}
 }

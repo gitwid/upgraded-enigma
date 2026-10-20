@@ -289,4 +289,73 @@ let migration0003 = Migration(
             """)
 )
 
-public let migrations: [Migration] = [migration0001, migration0002, migration0003]
+let migration0004 = Migration(
+    id: 4,
+    schemaVersion: "0.4",
+    description: """
+        Adds permissibility_assessments: contextual judgements about what may \
+        legitimately occur, kept separate from the capture record.
+        """,
+    migrationNotes: """
+        Additive only. No capture, annotation, or interpretation row is read \
+        or rewritten, and capture hashed content is unchanged at 0.4, so every \
+        existing object keeps its original hash and verifies exactly as before.
+        """,
+    compatibilityNotes: """
+        A reader that does not implement 0.4 sees the instrument as it was: \
+        assessments are an additional table, never a precondition for reading \
+        evidence. Supersession is derived from recency rather than stored, so \
+        no row is ever updated in place.
+        """,
+    statements: [
+        """
+        CREATE TABLE permissibility_assessments (
+            id TEXT PRIMARY KEY,
+            created_at TEXT NOT NULL,
+            actor_id TEXT NOT NULL,
+            action TEXT NOT NULL,
+            action_class TEXT NOT NULL
+                CHECK (action_class IN ('acquisition','retention','disclosure','ordinary')),
+            environment_id TEXT NOT NULL,
+            consent TEXT NOT NULL CHECK (consent IN ('granted','refused','unknown')),
+            constraints TEXT NOT NULL,
+            evidence_ids TEXT NOT NULL,
+            result TEXT NOT NULL
+                CHECK (result IN ('permitted','conditional','impermissible','undetermined')),
+            result_detail TEXT,
+            regime TEXT NOT NULL CHECK (regime IN ('sponge','pressure','edge')),
+            assessed_at TEXT NOT NULL,
+            valid_until TEXT,
+            protocol_version TEXT NOT NULL,
+            integrity_hash TEXT NOT NULL
+        )
+        """,
+        // Assessments are evidence of what was judged, and when. Revising a
+        // judgement appends a new row; nothing here is ever edited.
+        "CREATE INDEX idx_assessments_subject ON permissibility_assessments "
+            + "(actor_id, action, environment_id, assessed_at)",
+    ]
+        + immutableTriggers("permissibility_assessments"),
+    protocolRecord: ProtocolRecord(
+        version: "0.4",
+        changeDescription: """
+            Introduces contextual permissibility as a first-class, append-only \
+            record. The organizing question becomes what may legitimately occur \
+            in a context, rather than who holds authority to allow it. \
+            Permissibility is normative and does not replace technical \
+            enforcement: the append-only triggers and hash chain remain the \
+            boundary, and an assessment is additional to them.
+            """,
+        migrationNotes: """
+            Capture content is unchanged at 0.4; assessments are hashed as \
+            their own object type. Nothing is recomputed.
+            """,
+        compatibilityNotes: """
+            An assessment may be superseded by a later one and may expire; the \
+            observation it concerns is never rewritten. A stale assessment \
+            degrades to undetermined rather than continuing to permit, and \
+            undetermined is not permission for a sensitive action.
+            """)
+)
+
+public let migrations: [Migration] = [migration0001, migration0002, migration0003, migration0004]

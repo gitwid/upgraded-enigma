@@ -6,9 +6,9 @@
 import Foundation
 
 public enum Morningstar {
-    public static let appVersion = "0.3.0"
-    public static let protocolVersion = "0.3"
-    public static let schemaVersion = "0.3"
+    public static let appVersion = "0.4.0"
+    public static let protocolVersion = "0.4"
+    public static let schemaVersion = "0.4"
 
     /// Protocol 0.3 added the `unsorted` channel, so it participates in hashed
     /// content from 0.3 onward and must be absent from the content of anything

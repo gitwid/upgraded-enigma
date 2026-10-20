@@ -612,6 +612,157 @@ public final class SQLiteStore {
         try interpretations().filter { $0.current.referencedCaptureIDs.contains(captureID) }
     }
 
+    // MARK: - permissibility (protocol 0.4)
+
+    /// Assesses a context and records the judgement as its own append-only
+    /// row. Revising a judgement appends another; nothing is edited.
+    @discardableResult
+    public func assess(_ context: InteractionContext,
+                       validFor seconds: TimeInterval? = nil) throws -> PermissibilityAssessment {
+        for captureID in context.evidenceIDs { _ = try capture(id: captureID) }
+        let result = PermissibilityPolicy.assess(context)
+        let now = Timestamp.now()
+        let validUntil = seconds.map { Timestamp.formatter.string(from: Date().addingTimeInterval($0)) }
+        let draft = PermissibilityAssessment(
+            id: UUID().uuidString.lowercased(), actorID: context.actorID,
+            action: context.action, actionClass: context.actionClass,
+            environmentID: context.environmentID, consent: context.consent,
+            constraints: context.constraints, evidenceIDs: context.evidenceIDs,
+            result: result, regime: result.regime, assessedAt: now,
+            validUntil: validUntil, protocolVersion: Morningstar.protocolVersion,
+            integrityHash: "")
+        let digest = try integrityHash(draft.hashContent)
+        let assessment = PermissibilityAssessment(
+            id: draft.id, actorID: draft.actorID, action: draft.action,
+            actionClass: draft.actionClass, environmentID: draft.environmentID,
+            consent: draft.consent, constraints: draft.constraints,
+            evidenceIDs: draft.evidenceIDs, result: draft.result, regime: draft.regime,
+            assessedAt: draft.assessedAt, validUntil: draft.validUntil,
+            protocolVersion: draft.protocolVersion, integrityHash: digest)
+
+        try connection.transaction {
+            var detail: SQLValue = .null
+            if case .conditional(let conditions) = result {
+                detail = .text(try JCS.canonicalJSON(.array(conditions.map { .string($0) })))
+            }
+            if case .impermissible(let reason) = result { detail = .text(reason) }
+            try connection.execute(
+                """
+                INSERT INTO permissibility_assessments
+                (id, created_at, actor_id, action, action_class, environment_id, consent,
+                 constraints, evidence_ids, result, result_detail, regime, assessed_at,
+                 valid_until, protocol_version, integrity_hash)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                [.text(assessment.id), .text(now),
+                 .text(assessment.actorID.uuidString.lowercased()), .text(assessment.action),
+                 .text(assessment.actionClass.rawValue),
+                 .text(assessment.environmentID.uuidString.lowercased()),
+                 .text(assessment.consent.rawValue),
+                 .text(try JCS.canonicalJSON(.array(assessment.constraints.map { .string($0) }))),
+                 .text(try JCS.canonicalJSON(.array(assessment.evidenceIDs.map { .string($0) }))),
+                 .text(result.tag), detail, .text(assessment.regime.rawValue),
+                 .text(now), SQLValue(assessment.validUntil),
+                 .text(Morningstar.protocolVersion), .text(digest)])
+            var payload = assessment.hashContent
+            if case .object(var fields) = payload {
+                fields["integrity_hash"] = .string(digest)
+                payload = .object(fields)
+            }
+            try appendEvent("permissibility_assessed", payload: payload)
+        }
+        return assessment
+    }
+
+    /// The assessment that governs this subject right now, or nil if none has
+    /// been made. Supersession is derived from recency rather than stored, so
+    /// no row is ever updated; ties resolve to the more restrictive.
+    public func governingAssessment(actorID: UUID, action: String,
+                                    environmentID: UUID) throws -> PermissibilityAssessment? {
+        let rows = try connection.query(
+            """
+            SELECT * FROM permissibility_assessments
+            WHERE actor_id=? AND action=? AND environment_id=?
+            ORDER BY assessed_at
+            """,
+            [.text(actorID.uuidString.lowercased()), .text(action),
+             .text(environmentID.uuidString.lowercased())])
+        return rows.compactMap(decodeAssessment).reduce(nil) { current, next in
+            guard let current else { return next }
+            return PermissibilityPolicy.governing(current, next)
+        }
+    }
+
+    public func assessments(forCapture captureID: String) throws -> [PermissibilityAssessment] {
+        try connection.query(
+            "SELECT * FROM permissibility_assessments ORDER BY assessed_at"
+        ).compactMap(decodeAssessment).filter { $0.evidenceIDs.contains(captureID) }
+    }
+
+    /// Runs `body` only if the governing assessment currently permits it.
+    ///
+    /// The check happens *inside* the transaction and is re-read there, so a
+    /// withdrawal recorded between assessment and action is seen rather than
+    /// raced past. This serializes against other writers on this connection;
+    /// it is not a claim about distributed consent or multi-process access,
+    /// which remain open questions.
+    @discardableResult
+    public func withPermission<T>(actorID: UUID, action: String, actionClass: ActionClass,
+                                  environmentID: UUID, conditionsSatisfied: Bool = false,
+                                  _ body: () throws -> T) throws -> T {
+        try connection.transaction {
+            let governing = try governingAssessment(
+                actorID: actorID, action: action, environmentID: environmentID)
+            // No assessment at all is undetermined, not permitted.
+            let result = governing?.effectiveResult() ?? .undetermined
+            guard PermissibilityPolicy.mayProceed(
+                result, actionClass: actionClass, conditionsSatisfied: conditionsSatisfied)
+            else {
+                throw PermissibilityError.refused(action: action, result: result,
+                                                  regime: result.regime)
+            }
+            return try body()
+        }
+    }
+
+    private func decodeAssessment(_ row: Row) -> PermissibilityAssessment? {
+        guard let id = row.string("id"),
+              let actorText = row.string("actor_id"), let actorID = UUID(uuidString: actorText),
+              let action = row.string("action"),
+              let classText = row.string("action_class"),
+              let actionClass = ActionClass(rawValue: classText),
+              let environmentText = row.string("environment_id"),
+              let environmentID = UUID(uuidString: environmentText),
+              let consentText = row.string("consent"),
+              let consent = Consent(rawValue: consentText),
+              let resultTag = row.string("result"),
+              let regimeText = row.string("regime"), let regime = Regime(rawValue: regimeText),
+              let assessedAt = row.string("assessed_at"),
+              let digest = row.string("integrity_hash") else { return nil }
+        let strings: (String?) -> [String] = { text in
+            guard let text, let parsed = try? JSONValue.parse(text),
+                  case .array(let items) = parsed else { return [] }
+            return items.compactMap { $0.stringValue }
+        }
+        let detail = row.string("result_detail")
+        let result: Permissibility
+        switch resultTag {
+        case "permitted": result = .permitted
+        case "conditional": result = .conditional(strings(detail))
+        case "impermissible": result = .impermissible(detail ?? "")
+        default: result = .undetermined
+        }
+        return PermissibilityAssessment(
+            id: id, actorID: actorID, action: action, actionClass: actionClass,
+            environmentID: environmentID, consent: consent,
+            constraints: strings(row.string("constraints")),
+            evidenceIDs: strings(row.string("evidence_ids")),
+            result: result, regime: regime, assessedAt: assessedAt,
+            validUntil: row.string("valid_until"),
+            protocolVersion: row.string("protocol_version") ?? Morningstar.protocolVersion,
+            integrityHash: digest)
+    }
+
     // MARK: - integrity verification
 
     /// Rechecks the whole store: event ordering, hash-chain continuity,
@@ -753,6 +904,28 @@ public final class SQLiteStore {
         if hidden > 0 {
             report.warnings.append(
                 "\(hidden) capture(s) hidden from normal view (evidence retained)")
+        }
+
+        // Assessments are checked like any other record: a judgement about
+        // what may happen is itself evidence of what was judged, and when.
+        for row in try connection.query(
+            "SELECT * FROM permissibility_assessments ORDER BY assessed_at") {
+            report.assessmentCount += 1
+            guard let assessment = decodeAssessment(row) else {
+                report.errors.append("permissibility assessment row is unreadable")
+                continue
+            }
+            let label = "assessment \(String(assessment.id.prefix(8))) (\(assessment.action))"
+            if (try? integrityHash(assessment.hashContent)) != assessment.integrityHash {
+                report.errors.append("\(label): stored hash does not match content")
+            }
+            for captureID in assessment.evidenceIDs where !captureIDs.contains(captureID) {
+                report.errors.append("\(label): cites missing capture")
+            }
+            if assessment.isStale() {
+                report.warnings.append(
+                    "\(label): expired — it no longer permits anything and reads as undetermined")
+            }
         }
         return report
     }

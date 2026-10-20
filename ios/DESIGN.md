@@ -143,6 +143,80 @@ rewards frequency. `AppShortcut` phrases exist so *you* can reach the
 instrument quickly; nothing reaches back. The re-entry line stays a single
 factual sentence about elapsed time and reads nothing into it.
 
+## Contextual permissibility (protocol 0.4)
+
+The organizing question is no longer *who may grant this* but *what may
+legitimately occur here* — given this actor, action, environment, consent, and
+constraints. Three regimes describe how the membrane responds:
+
+| Regime | Posture |
+| --- | --- |
+| **Sponge** | Accommodation. Ambiguity, friction, and harmless variation pass without escalation. |
+| **Pressure** | Legible resistance. The approaching constraint is made perceptible, with adjustment or withdrawal offered instead of silent failure. |
+| **Edge** | Inviolable. The impermissible does not happen — including prohibited acquisition or disclosure. |
+
+**Permissibility is normative; permeability is technical.** A technically
+possible operation may still be impermissible. This layer therefore *adds* to
+the existing boundary and replaces none of it: the SQLite append-only triggers
+and the hash chain remain the enforcement, and an assessment never unlocks
+them. The one pre-existing consent gate (`deviceMetadataConsent`) is untouched.
+
+### The rules, and why they are ordered
+
+`PermissibilityPolicy.assess` is pure and evaluated in this order:
+
+1. **Refusal is an edge, always.** No regime, metaphor, or satisfied condition
+   rescues a withdrawn consent.
+2. **A sensitive action without consent is `undetermined`** — never permitted
+   by default. Sensitive means acquisition, retention, or disclosure.
+3. **Named constraints produce `conditional`**, so the boundary is perceptible
+   before it is hit. The caller must confirm the conditions; this layer cannot
+   verify what it only names.
+4. Otherwise, accommodate.
+
+`undetermined` is deliberately **not** sponge but pressure: unresolved should
+be felt, not silently accommodated and then failed. And `mayProceed` refuses
+`undetermined` for every sensitive action, which is the whole of the interrupt
+*do not let a softer interaction metaphor weaken hard consent boundaries*
+expressed as code.
+
+### Assessments are records, not flags
+
+A `PermissibilityAssessment` is an append-only row in its own table with its
+own integrity hash, cited evidence, and `permissibility_assessed` event. It is
+kept apart from captures on purpose: an assessment may be superseded as
+context moves; the observation it concerns must never be silently rewritten —
+the same separation the interpretation layer already keeps.
+
+- **Supersession is derived, not written.** The latest assessment for an
+  (actor, action, environment) governs; nothing is ever updated in place. A
+  tie resolves to the *more restrictive*, so a race cannot widen permission.
+- **Staleness degrades to `undetermined`.** A permission past its `validUntil`
+  stops permitting rather than continuing by inertia, and the audit reports it.
+- **No assessment at all is `undetermined`,** not permitted.
+- Assessments are verified like any other record; tampering with one is as
+  visible as tampering with a capture.
+
+`withPermission` re-reads the governing assessment *inside* the write
+transaction, so a withdrawal recorded between assessment and action is seen
+rather than raced past.
+
+### Register — what 0.4 does and does not establish
+
+| Register | Finding |
+| --- | --- |
+| ESTABLISHED | Refusal, staleness, absence, and conflict all resolve against permission, under test |
+| ESTABLISHED | Assessments are append-only, hashed, evidence-linked, and audited |
+| ESTABLISHED | Capture immutability and the triggers are unchanged by this layer |
+| PROVISIONAL | Sponge–Pressure–Edge as the right decomposition of response |
+| OPEN | Distributed consent, identity verification, multi-process enforcement |
+| OPEN | Independent evaluation by a second participant |
+
+The concurrency claim is bounded and stated in the tests themselves: writes
+serialize on one connection. That is not a claim about distributed consent or
+identity, and `testConcurrencyClaimIsBoundedToOneConnection` exists to keep
+the boundary of the claim visible rather than implied.
+
 ## Desktop-only (not doable in the cloud build container)
 
 - Building/running the app (Xcode + iOS SDK). `brew install xcodegen && cd
